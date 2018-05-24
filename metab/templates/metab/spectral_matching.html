@@ -1,0 +1,20 @@
+{% extends 'gfiles/table_with_filter_above.html' %}
+{% block sb_admin_title %}Fragmentation spectra for feature{% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small></small> {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> Metab Summary</a>
+    / <a href="{% url "cpeakgroupmeta_summary" %}"> LC-MS(/MS) Summary</a>
+    / <a href="{% url "cpeakgroup_summary" cpgm_id %}"> LC-MS(/MS) Peaks </a>
+    / <a href="{% url "canns" cpg_id %}"> LC Peak Annotation </a>
+    / <a href="{% url "cpeakgroup_spectral_matching_summary" cpg_id %}"> LC-MS/MS Spectral Matching Summary </a>
+{% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / Spectral Matching {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %}Summary{% endblock panel_title %}
+{% block preamble %}
+    {% if graph %}
+        <div style="width:600;height:500">
+            {{ graph|safe }}
+        </div>
+    {% endif %}
+{% endblock preamble %}

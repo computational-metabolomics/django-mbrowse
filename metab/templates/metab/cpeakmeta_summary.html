@@ -1,0 +1,17 @@
+{% extends 'gfiles/table_with_filter_above.html' %}
+{% block sb_admin_title %}LC-MS(/MS) Summary  {% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small></small> {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> Metab Summary</a>
+{% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / LC-MS(/MS) Summary {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %}Summary{% endblock panel_title %}
+{% block preamble %}
+    <p> Overview of all the gas or liquid chromatography mass spectrometry based uploaded datasets</p>
+    <p>Data has been either uploaded following
+                    analysis through external script or through Galaxy</p>
+    <p> All data will have been processed minimally with the following R packages XCMS, CAMERA and msPurity</p>
+
+    <p> Further annotation results can be added to each dataset</p>
+{% endblock preamble %}

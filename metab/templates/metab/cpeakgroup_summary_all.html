@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+    <script
+        type="text/javascript"
+        src="{% static "django_tables2_column_shifter/js/django_tables2_column_shifter.min.js" %}">
+    </script>
+
+	<div class="content container">
+            <div class="general">
+                <h1>All GC/LC-MS peaks</h1>
+
+                {% load render_table from django_tables2 %}
+                {% load bootstrap3 %}
+
+                {% if filter %}
+                    <form action="" method="get" class="form form-inline">
+                        {% bootstrap_form filter.form layout='inline' %}
+                        {% bootstrap_button 'filter' %}
+                    </form>
+                {% endif %}
+                <br>
+                {% render_table table 'django_tables2_column_shifter/bootstrap3.html' %}
+
+
+            </div>
+	</div>
+{% endblock %}

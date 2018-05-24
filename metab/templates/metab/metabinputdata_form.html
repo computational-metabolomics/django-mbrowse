@@ -1,0 +1,10 @@
+{% extends 'gfiles/simple_form.html' %}
+{% load static %}
+{% block sb_admin_title %}Add Metabolomics Dataset{% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small>LC-MS(/MS)</small> {% endblock sb_admin_subheading %}
+
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> Metab Summary</a>
+{% endblock sb_admin_breadcrumb %}
+{% block panel_title %}{% endblock panel_title %}

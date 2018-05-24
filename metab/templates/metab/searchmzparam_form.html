@@ -1,0 +1,9 @@
+{% extends 'gfiles/simple_form.html' %}
+{% block sb_admin_title %}Search <i>m/z</i> {% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small></small> {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> Metab Summary</a>
+{% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / Search <i>m/z</i> {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %}Search Parameters{% endblock panel_title %}

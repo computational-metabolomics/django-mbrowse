@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block sb_admin_title %} Metab Summary {% endblock sb_admin_title %}
+{% block sb_admin_subheading %}  {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %} <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a> {% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / Metab Summary {% endblock sb_admin_breadcrumb_active %}
+
+{% block content %}
+    <div class="page-header">
+        <h2></h2>
+    </div>
+
+    <div class="page-header">
+        <h2> Operations </h2>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Search </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                       <a href="{% url "search_mz" %}" class="list-group-item">Neutral Mass</a>
+                       <a href="{% url "search_nm" %}" class="list-group-item"><i>m/z</i></a>
+                       <a href="{% url "search_frag" %}" class="list-group-item">Fragmentation</a>
+                       <a href="#" class="list-group-item">Compounds</a>
+                       <a href="{% url "search_result_summary" %}" class="list-group-item">Search summary</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Browse </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                        <a href="{% url "mfile_summary" %}" class="list-group-item">Show all metabolomics files</a>
+                        <a href="{% url "cpeakgroupmeta_summary" %}" class="list-group-item">Show LC-MS(/MS) datasets</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Analyse </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                        <a href="#" class="list-group-item">Similarity.... </a>
+                        <a href="#" class="list-group-item">Trends...   </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+{% endblock %}

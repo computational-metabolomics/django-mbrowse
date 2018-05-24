@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block sb_admin_title %} Search Result Summary {% endblock sb_admin_title %}
+{% block sb_admin_subheading %}  {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %} <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a> {% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / Search Result Summary {% endblock sb_admin_breadcrumb_active %}
+
+{% block content %}
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Neutral mass </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                       <a href="{% url 'search_nm' %}" class="list-group-item">Search</a>
+                       <a href="{% url 'search_nm_result' %}" class="list-group-item">Results</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i>m/z</i> </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                       <a href="{% url 'search_mz' %}" class="list-group-item">Search</a>
+                       <a href="{% url 'search_mz_result' %}" class="list-group-item">Results</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Fragmentation </h3>
+                </div>
+                <div class="panel-body">
+                   <div class="list-group">
+                       <a href="{% url 'search_frag' %}" class="list-group-item">Search</a>
+                       <a href="{% url 'search_frag_result' %}" class="list-group-item">Results</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+
+
+
+
+
+
+

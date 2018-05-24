@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+	<div class="content container">
+            <div class="general">
+				<h1>Upload metabolomics data file</h1>
+                <form action="{% url 'upload_mfile' %}"  method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% include "gfiles/form_table.html" %}
+                </form>
+            </div>
+	</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+

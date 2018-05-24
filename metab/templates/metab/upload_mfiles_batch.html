@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+    <div class="content container">
+            <div class="general">
+				<h1>Batch upload of mfiles</h1>
+                {% include "gfiles/zip_and_dir_file_select.html" %}
+	        </div>
+	</div>
+{% endblock %}

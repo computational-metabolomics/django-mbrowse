@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+	<div class="content container">
+           <div class="general">
+				<h1>Add metabolomics run</h1>
+                <form action="{% url 'add_run' %}"  method="post" enctype=multipart/form-data>{% csrf_token %}
+                {% include "gfiles/form_table.html" %}
+                </form>
+            </div>
+	</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+

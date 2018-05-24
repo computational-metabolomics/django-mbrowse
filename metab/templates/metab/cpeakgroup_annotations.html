@@ -1,0 +1,33 @@
+{% extends 'gfiles/table_with_filter_above.html' %}
+{% block sb_admin_title %}LC peak annotation {% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small></small> {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> Metab Summary</a>
+    / <a href="{% url "cpeakgroupmeta_summary" %}"> LC-MS(/MS) Summary</a>
+    / <a href="{% url "cpeakgroup_summary" cpgm_id %}"> LC-MS(/MS) Peaks </a>
+{% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / LC peak annotation {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %}Summary{% endblock panel_title %}
+{% block postamble %}
+    <div class="row">
+            <div class="col-lg-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">More details</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="list-group">
+                            <a href="{% url 'cpeakgroup_spectral_matching_summary' cgid %}" class="list-group-item">Spectral matching</a>
+                            <a href="{% url "search_nm" %}" class="list-group-item">MetFrag</a>
+                            <a href="{% url 'cpeakgroup_spectral_matching_summary' cgid %}" class="list-group-item">Sirius CSI:FingerID</a>
+                            <a href="{% url "search_mz" %}" class="list-group-item">MS<sup>1</sup> level annotation</a>
+                            <a href="{% url "search_mz" %}" class="list-group-item">mzCloud (TODO)</a>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+{% endblock postamble %}

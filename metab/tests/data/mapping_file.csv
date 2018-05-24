@@ -1,0 +1,17 @@
+filename,investigation_name,sample_type,extraction_type,spe_type,spe_frac,chromatography_type,chromatography_frac,measurement_type,polarity_type,analyst,replicate,fileformat
+B_P_WAX_1_PHE_NA_LC-MS_POS_rep1.mzML,daphnia_magna,B,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+B_P_WAX_1_PHE_NA_LC-MS_POS_rep2.mzML,daphnia_magna,B,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MS_POS_rep1.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MS_POS_rep2.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MSMS_POS_rep1.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MSMS_POS_rep2.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,mzml
+,,,,,,,,,,,,
+B_P_WAX_1_PHE_NA_LC-MS_POS_rep1.mzML,daphnia_magna,B,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+B_P_WAX_1_PHE_NA_LC-MS_POS_rep2.mzML,daphnia_magna,B,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MS_NEG_rep1.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MS_NEG_rep2.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MSMS_NEG_rep1.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,mzml
+A_P_WAX_1_PHE_NA_LC-MSMS_NEG_rep2.mzML,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,mzml
+,,,,,,,,,,,,
+A_P_WAX_1_PHE_NA_LC-MSMS_NEG_rep1.raw,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,raw
+A_P_WAX_1_PHE_NA_LC-MSMS_NEG_rep2.raw,daphnia_magna,A,P,WAX,1,PHE,NA,LC-MSMS,NEG,MJ,1,raw
