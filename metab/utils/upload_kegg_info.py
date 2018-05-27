@@ -3,8 +3,10 @@ import re
 import pubchempy as pcp
 from metab.models import Compound
 import uuid
+from bioservices import *
 
 def get_pubchem_compound(in_str, type='inchikey'):
+    # pubchem stores the SID not the CID!!!! means we can't use it like this
     if not in_str:
         return 0
 
@@ -21,6 +23,21 @@ def get_pubchem_compound(in_str, type='inchikey'):
 
 
 
+def get_inchi_from_chebi(chebi_id):
+    # pubchem stores the SID not the CID!!!! means we can't use it like this
+    if not chebi_id:
+        return 0
+
+    chebi_con = ChEBI()
+
+    chebi_entry = chebi_con.getCompleteEntity(chebi_id)
+
+    return chebi_entry.inchi
+
+
+
+
+
 def get_kegg_compound(cid):
     kegg_compound = {'chebi_id':None, 'lbdb_id':None, 'lmdb_id':None, 'pubchem_id':None, 'brite':None}
     url_get = 'http://rest.kegg.jp/get/{}'.format(cid)
@@ -28,7 +45,7 @@ def get_kegg_compound(cid):
     all_cont = resp.content
     all_cont_rows = all_cont.split('\n')
 
-    pubchem_count = 0
+    chebi_count = 0
 
     kegg_compound['kegg_cid'] = cid
     for detail in all_cont_rows:
@@ -53,14 +70,15 @@ def get_kegg_compound(cid):
             pubchem_id = mtch.group(1).strip()
             full_str = re.sub("\s+", ",", pubchem_id)
             kegg_compound['pubchem_id'] = full_str
-            kegg_compound['pubchem_id_single'] = full_str.split(',')[0]
-            pubchem_count += 1
 
         mtch = re.search('.*ChEBI(?::|\s)(.*)', detail)
         if mtch:
 
             chebi = mtch.group(1).strip()
-            kegg_compound['chebi_id'] = re.sub("\s+", ",", chebi)
+            full_str = re.sub("\s+", ",", chebi)
+            kegg_compound['chebi_id'] = full_str
+            kegg_compound['chebi_id_single'] = full_str.split(',')[0]
+            chebi_count += 1
 
 
         mtch = re.search('.*LipidBank(?::|\s)(.*)', detail)
@@ -81,7 +99,7 @@ def get_kegg_compound(cid):
 
 
 
-    if pubchem_count > 1:
+    if chebi_count > 1:
         print 'more than 1 pubchem!'
 
     return kegg_compound
@@ -124,22 +142,24 @@ def get_kegg_info():
         if comps_all.filter(kegg_id__regex='(^|,){}(,|$)'.format(cid)):
             continue
 
+        if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
+            inchikey = get_inchi_from_chebi(kegg_compound['chebi_id_single'])
 
-        try:
-            if 'pubchem_id_single' in kegg_compound and kegg_compound['pubchem_id_single']:
-                comp = pcp.get_compounds(kegg_compound['pubchem_id_single'])
-            else:
-                comp = pcp.get_compounds(kegg_compound['name'], 'name')
-        except pcp.BadRequestError as e:
-            print 'no pubchem entry due to request error'
-            continue
-        except pcp.TimeoutError as e:
-            print 'no pubchem entry due to timeout'
-            continue
-        if len(comp) > 1:
-            print 'MORE THAN 1 ENTRY!!!!!', kegg_compound
+        # try:
+        #     if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
+        #         comp = pcp.get_compounds(kegg_compound['chebi_id_single'])
+        #     else:
+        #         comp = pcp.get_compounds(kegg_compound['name'], 'name')
+        # except pcp.BadRequestError as e:
+        #     print 'no pubchem entry due to request error'
+        #     continue
+        # except pcp.TimeoutError as e:
+        #     print 'no pubchem entry due to timeout'
+        #     continue
+        # if len(comp) > 1:
+        #     print 'MORE THAN 1 ENTRY!!!!!', kegg_compound
 
-        if comp:
+        if inchikey:
 
             mtchs = Compound.objects.filter(inchikey_id=comp[0].inchikey)
             if mtchs:
@@ -150,27 +170,31 @@ def get_kegg_info():
 
                 mtch_compound.kegg_id = kegg_compound['kegg_cid']
 
-                mtch_compound.inchikey_id = comp[0].inchikey
-                mtch_compound.iupac_name = comp[0].iupac_name
-                mtch_compound.pubchem_id = '{},{}'.format(mtch_compound.pubchem_id, comp[0].cid) if mtch_compound.pubchem_id else comp[0].cid
+                mtch_compound.inchikey_id = inchikey
+
                 mtch_compound.chebi_id = '{},{}'.format(mtch_compound.chebi_id,
                                                         kegg_compound['chebi_id']) if mtch_compound.chebi_id else kegg_compound['chebi_id']
 
-                mtch_compound.lbdb_id = '{},{}'.format(mtch_compound.lbdb_id,
+                if 'lbdb_id' in kegg_compound:
+                    mtch_compound.lbdb_id = '{},{}'.format(mtch_compound.lbdb_id,
                                                         kegg_compound['lbdb_id']) if mtch_compound.chebi_id else kegg_compound['lbdb_id']
 
-                mtch_compound.lmdb_id = '{},{}'.format(mtch_compound.lmdb_id,
+                if 'lmdb_id' in kegg_compound:
+                    mtch_compound.lmdb_id = '{},{}'.format(mtch_compound.lmdb_id,
                                                        kegg_compound['lmdb_id']) if mtch_compound.chebi_id else  kegg_compound['lmdb_id']
 
-                mtch_compound.brite = '{},{}'.format(mtch_compound.brite,
+                if 'brite' in kegg_compound:
+                    mtch_compound.brite = '{},{}'.format(mtch_compound.brite,
                                                        kegg_compound['brite']) if mtch_compound.brite else kegg_compound['brite']
 
                 mtch_compound.other_names = kegg_compound['names']
                 mtch_compound.name = kegg_compound['name']
-                mtch_compound.molecular_formula = comp[0].molecular_formula
-                mtch_compound.monoisotopic_mass = comp[0].monoisotopic_mass
-                mtch_compound.molecular_weight = comp[0].molecular_weight
-                mtch_compound.exact_mass = comp[0].exact_mass
+
+
+                mtch_compound.molecular_formula = kegg_compound['mf'] if 'mf' in kegg_compound else None,
+
+
+                mtch_compound.exact_mass = kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
 
                 print 'UPDATE'
 
@@ -184,20 +208,16 @@ def get_kegg_info():
 
             else:
                 print 'CREATE'
-                new_comp = Compound(inchikey_id=comp[0].inchikey,
-                                    iupac_name=comp[0].iupac_name,
-                                    pubchem_id=kegg_compound['pubchem_id'],
+                new_comp = Compound(inchikey_id=inchikey,
+                                    kegg_id=kegg_compound['kegg_cid'],
                                     other_names=kegg_compound['names'],
                                     name=kegg_compound['name'],
-                                    kegg_id=kegg_compound['kegg_cid'],
-                                    molecular_formula=comp[0].molecular_formula,
-                                    monoisotopic_mass=comp[0].monoisotopic_mass,
-                                    molecular_weight=comp[0].molecular_weight,
-                                    exact_mass=comp[0].exact_mass,
-                                    chebi_id=kegg_compound['chebi_id'],
-                                    lbdb_id=kegg_compound['lbdb_id'],
-                                    lmdb_id=kegg_compound['lmdb_id'],
-                                    brite=kegg_compound['brite']
+                                    molecular_formula=kegg_compound['mf'] if 'mf' in kegg_compound else None,
+                                    exact_mass=kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
+                                    chebi_id=kegg_compound['chebi_id'] if 'chebi_id' in kegg_compound else None,
+                                    lbdb_id=kegg_compound['lbdb_id'] if 'lbdb_id' in kegg_compound else None,
+                                    lmdb_id=kegg_compound['lmdb_id'] if 'lmdb_id' in kegg_compound else None,
+                                    brite=kegg_compound['brite'] if 'brite' in kegg_compound else None,
                                     )
                 new_comp.save()
 

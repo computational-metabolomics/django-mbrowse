@@ -17,9 +17,6 @@ from metab.tables import CPeakGroupTable, CPeakGroupMetaTable, EicTable, SPeakTa
 from metab.filter import CPeakGroupFilter
 from metab.tasks import save_lcms_data_task
 
-
-
-
 #################################################################################
 # LC-MS stuff
 #################################################################################
@@ -77,6 +74,19 @@ class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, ListView):
         context['cgid'] = self.kwargs.get('cgid')
         context['cpgm_id'] = CPeakGroupMeta.objects.get(cpeakgroup__id=self.kwargs.get('cgid')).id
         return context
+
+
+
+class CAnnotationsListAllView(LoginRequiredMixin, SingleTableMixin, ListView):
+    '''
+    '''
+    table_class = CAnnotationTable
+    model = CAnnotation
+    template_name = 'metab/cpeakgroup_annotations_all.html'
+
+    def get_queryset(self):
+        return CAnnotation.objects.all().order_by('-weighted_score')
+
 
 
 class CPeakGroupMetaListView(LoginRequiredMixin, SingleTableMixin, ListView):

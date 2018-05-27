@@ -10,6 +10,7 @@ import os
 import pubchempy as pcp
 import uuid
 import urllib2
+from httplib import BadStatusLine
 
 def create_db(file_pth=None, db_type='sqlite', db_name=None, user='', password='', old_schema=False):
     print "CREATE DB"
@@ -488,7 +489,7 @@ class LibraryData(object):
         except urllib2.URLError as e:
             print e
             return 0
-        except urllib2.BadStatusLine as e:
+        except BadStatusLine as e:
             print e
             return 0
 

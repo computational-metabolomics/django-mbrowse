@@ -29,8 +29,10 @@ import numpy as np
 from django.db import connection
 from metab.utils.sql_utils import sql_column_names, check_table_exists_sqlite
 from metab.utils.update_cannotations import update_cannotations
-from metab.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound
+from metab.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound, get_inchi_from_chebi
 import uuid
+from django.conf import settings
+import re
 
 def save_lcms_data(hdm_id, celery_obj=None):
     mfiles = MFile.objects.all()
@@ -172,6 +174,61 @@ def save_lcms_data(hdm_id, celery_obj=None):
 
     if celery_obj:
         celery_obj.update_state(state='SUCCESS', meta={'current': 100, 'total': 100})
+
+
+def get_pubchem_sqlite_local(pubchem_id):
+    if not hasattr(settings, 'METAB_PUBCHEM_SQLITE_PTH') and not settings.METAB_PUBCHEM_SQLITE_PTH:
+        return ''
+
+    conn = sqlite3.connect(settings.METAB_PUBCHEM_SQLITE_PTH)
+    cursor = conn.cursor()
+
+    pubchem_out = []
+
+    cursor.execute('SELECT * FROM  pubchem_compounds WHERE cid={}'.format(pubchem_id))
+    names = sql_column_names(cursor)
+
+    # cid is in the primary key so will only be 1 entry
+    return create_compound_from_pubchem_local(cursor.next(), names)
+
+
+
+
+
+def create_compound_from_pubchem_local(row, names):
+    cid = row[names['cid']]
+    inchikey = row[names['inchikey']]
+    comp = Compound.objects.filter(inchikey_id=inchikey)
+
+    if comp:
+        mtch_compound = comp[0]
+        if not mtch_compound.pubchem_id:
+            mtch_compound.pubchem_id = cid
+            mtch_compound.save()
+
+        elif not re.match('(^|,){}(,|$)'.format(cid), mtch_compound.pubchem_id):
+            mtch_compound.pubchem_id = '{},{}'.format(mtch_compound.pubchem_id, cid)
+            mtch_compound.save()
+
+        return mtch_compound
+    else:
+        # we create the compound
+        comp = Compound(inchikey_id=inchikey,
+                 pubchem_id=cid,
+                 exact_mass=row[names['exact_mass']],
+                 molecular_formula=row[names['mf']],
+                 name=row[names['name']],
+                 monoisotopic_mass=row[names['monoisotopic_mass']],
+                 molecular_weight=row[names['molecular_weight']],
+                 iupac_name=row[names['iupac_name']],
+                 systematic_name=row[names['iupac_systematic_name']]
+        )
+        comp.save()
+        return comp
+
+
+
+
 
 
 def save_adduct_rules(cursor, md):
@@ -330,11 +387,18 @@ def save_spectral_matching_annotations(cursor, md):
     # CPeakGroupAnn.objects.bulk_create(matchxs)
 
 def save_compound_kegg(kegg_compound):
-    comp = Compound(inchikey_id='UNKNOWN_' + str(uuid.uuid4()),
-                    name=kegg_compound['name'] if 'name' in list(kegg_compound) else None,
-                    molecular_formula=kegg_compound['mf'] if 'mf' in list(kegg_compound) else None,
-                    exact_mass=kegg_compound['exact_mass'] if 'exact_mass' in list(kegg_compound) else None,
+
+
+    comp = Compound(inchikey_id=kegg_compound['inchikey_id'] if 'inchikey_id' in kegg_compound else 'UNKNOWN_' + str(uuid.uuid4()),
+                    name=kegg_compound['name'] if 'name' in kegg_compound else None,
+                    molecular_formula=kegg_compound['mf'] if 'mf' in kegg_compound else None,
+                    exact_mass=kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
                     kegg_id=kegg_compound['kegg_cid'],
+                    chebi_id=kegg_compound['chebi_id'] if 'chebi_id' in kegg_compound else None,
+                    lbdb_id=kegg_compound['lbdb_id'] if 'lbdb_id' in kegg_compound else None,
+                    lmdb_id=kegg_compound['lmdb_id'] if 'lmdb_id' in kegg_compound else None,
+                    brite=kegg_compound['brite'] if 'brite' in kegg_compound else None,
+
                     )
     comp.save()
     return comp
@@ -354,26 +418,19 @@ def save_probmetab(cursor, md):
 
     for c, row in enumerate(cursor):
 
-        # Currently only works for mass bank (or anything from the experimental MONA library)
+        # Expect to have majority of KEGG in the Compound model already
         kegg_id = row[names['mpc']].split(':')[1]
-        comp_search = Compound.objects.filter(kegg_id__regex='(^|,){}(,|$)'.format(kegg_id))
+        comp_search = Compound.objects.filter(kegg_id__regex='("|^|,){}(,|$|")'.format(kegg_id))
         print c, kegg_id
         if comp_search:
             comp = comp_search[0]
         else:
             kegg_compound = get_kegg_compound(kegg_id)
-            if 'pubchem_id' in kegg_compound.keys() and kegg_compound['pubchem_id']:
-                pc_matches = get_pubchem_compound(kegg_compound['pubchem_id'], 'cid')
-                if pc_matches:
-                    # just take the top hit from now (in some very rare cases there is more than 1 hit)
-                    print 'MATCHES', kegg_compound
-                    comp = create_pubchem_comp(pc_matches[0], kegg_id)
-                else:
-                    print 'NO pub chem compound found'
-                    comp = save_compound_kegg(kegg_compound)
-            else:
-                print 'NO pub chem compound available'
-                comp = save_compound_kegg(kegg_compound)
+            print 'ADDING TO DATABASE'
+            if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
+                kegg_compound['inchikey_key'] = get_inchi_from_chebi(kegg_compound['chebi_id_single'])
+
+            comp = save_compound_kegg(kegg_compound)
 
 
         match = ProbmetabAnnotation(idi=c+1,
@@ -437,30 +494,36 @@ def save_metfrag(cursor, md):
         if comp_search:
             comp = comp_search[0]
         else:
-            pc_matches = get_pubchem_compound(identifier, 'cid')
+
+            comp = get_pubchem_sqlite_local(identifier)
 
 
-            if not pc_matches:
-                pc_matches = get_pubchem_compound(inchikey, 'inchikey')
+
+            if not comp:
+                pc_matches = get_pubchem_compound(identifier, 'cid')
+
+
                 if not pc_matches:
-                    print row
-                    print pc_matches
-                    print inchikey
-                    continue
+                    pc_matches = get_pubchem_compound(inchikey, 'inchikey')
+                    if not pc_matches:
+                        print row
+                        print pc_matches
+                        print inchikey
+                        continue
 
-            if len(pc_matches)>1:
-                print 'More than 1 match for inchi, taking the first match, should only really happen in rare cases' \
+                if len(pc_matches)>1:
+                    print 'More than 1 match for inchi, taking the first match, should only really happen in rare cases' \
                       'and we have not got the power to distinguish between them anyway!'
-                print pc_matches
-                print pc_matches[0].cid
-                print pc_matches[0].inchikey
-                print row
+                    print pc_matches
+                    print pc_matches[0].cid
+                    print pc_matches[0].inchikey
+                    print row
 
 
-            pc_match = pc_matches[0]
-            print 'NEW COMP', pc_match.synonyms, pc_match.cid, pc_match.inchikey
-            comp = create_pubchem_comp(pc_match)
-            comp.save()
+                pc_match = pc_matches[0]
+                print 'NEW COMP', pc_match.synonyms, pc_match.cid, pc_match.inchikey
+                comp = create_pubchem_comp(pc_match)
+                comp.save()
 
 
         match = MetFragAnnotation(idi=i+1,
@@ -519,7 +582,8 @@ def save_sirius_csifingerid(cursor, md):
         pubchem_ids = row[names['pubchemids']].split(';')
         print pubchem_ids
         for pubchem_id in pubchem_ids:
-            comp_search = Compound.objects.filter(pubchem_id__regex='(^|,){}(,|$)'.format(pubchem_id))
+            comp_search = get_pubchem_sqlite_local(pubchem_id)
+
             if comp_search:
                 comp = comp_search[0]
                 comps.append(comp)
@@ -534,7 +598,6 @@ def save_sirius_csifingerid(cursor, md):
                     comps.append(comp)
                 else:
                     print 'No matching pubchemid'
-
 
         print comps
 
