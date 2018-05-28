@@ -36,7 +36,7 @@ def update_best_match(cpgm):
             bulk_update(cpgs)
             cpgs=[]
         cpg = CPeakGroup.objects.get(pk=cpgq['id'])
-        cpg.best_annotation = cpgq['cannotation__compound__name__max'] if cpgq['cannotation__compound__name__max'] else 'Unknown name'
+        cpg.best_annotation = cpgq['cannotation__compound__name__max'] if cpgq['cannotation__compound__name__max'] else None
         cpg.best_score =cpgq['cannotation__weighted_score__max']
         cpgs.append(cpg)
 

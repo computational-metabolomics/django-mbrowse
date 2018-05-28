@@ -32,10 +32,10 @@ def get_inchi_from_chebi(chebi_id):
 
     chebi_entry = chebi_con.getCompleteEntity(chebi_id)
 
-    if 'inchi' in chebi_entry:
-        return chebi_entry.inchi
+    if 'inchikey' in chebi_entry:
+        return chebi_entry.inchikey
     else:
-        ''
+        return ''
 
 
 

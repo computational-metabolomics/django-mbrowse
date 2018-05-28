@@ -38,5 +38,5 @@ def search_frag_task(self, sp):
 
 @shared_task(bind=True)
 def save_lcms_data_task(self, pk):
-    lcms_data_transfer = LcmsDataTransfer(pk, None, self)
-    lcms_data_transfer.transfer()
+    lcms_data_transfer = LcmsDataTransfer(pk, None)
+    lcms_data_transfer.transfer(celery_obj=self)

@@ -35,7 +35,7 @@ from django.conf import settings
 import re
 
 class LcmsDataTransfer(object):
-    def __init__(self, hdm_id, mfile_ids, celery_obj=None):
+    def __init__(self, hdm_id, mfile_ids):
         if mfile_ids:
             self.mfiles = MFile.objects.filter(pk__in=mfile_ids)
         else:
@@ -48,7 +48,7 @@ class LcmsDataTransfer(object):
 
         self.cpeakgroupmeta_class = CPeakGroupMeta
 
-    def transfer(self, celery_obj):
+    def transfer(self, celery_obj=None):
         ###################################
         # Get map of filename-to-class
         ###################################
@@ -744,7 +744,7 @@ class LcmsDataTransfer(object):
                 if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
                     inchikey = get_inchi_from_chebi(kegg_compound['chebi_id_single'])
                     if inchikey:
-                        kegg_compound['inchikey_key'] = inchikey
+                        kegg_compound['inchikey_id'] = inchikey
 
                 comp = save_compound_kegg(kegg_compound)
 
