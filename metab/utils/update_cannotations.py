@@ -8,6 +8,7 @@ from metab.models import (
     SpectralMatching,
     CPeakGroup
 )
+from bulk_update.helper import bulk_update
 
 def update_cannotations(cpgm):
     print cpgm
@@ -21,18 +22,23 @@ def update_cannotations(cpgm):
 
 def update_best_match(cpgm):
     cpgqs = CPeakGroup.objects.filter(
-            cpeakgroupmeta_id=cpgm,
+            cpeakgroupmeta=cpgm,
             ).values(
               'id'
             ).annotate(
                 Max('cannotation__weighted_score'),
                 Max('cannotation__compound__name')
             )
-    for cpgq in cpgqs:
-        cpg = CPeakGroup.objects.get(cpgq['id'])
-        cpg.best_annotation = cpgq['cannotation__compound__name'] if cpgq['cannotation__compound__name'] else 'Unknown name'
-        cpg.best_score =cpgq['cannotation__weighted_score']
-        cpg.save()
+    cpgs = []
+    for i, cpgq in enumerate(cpgqs):
+        if i % 500 == 0:
+            print i
+            bulk_update(cpgs)
+            cpgs=[]
+        cpg = CPeakGroup.objects.get(pk=cpgq['id'])
+        cpg.best_annotation = cpgq['cannotation__compound__name__max'] if cpgq['cannotation__compound__name__max'] else 'Unknown name'
+        cpg.best_score =cpgq['cannotation__weighted_score__max']
+        cpgs.append(cpg)
 
 
 

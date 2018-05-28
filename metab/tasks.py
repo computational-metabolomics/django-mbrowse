@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from metab.utils.msp2db import LibraryData
 from metab.utils.search_mz_nm import search_mz, search_nm
 from metab.utils.search_frag import search_frag
-from metab.utils.save_lcms import save_lcms_data
+from metab.utils.save_lcms import LcmsDataTransfer
 
 
 @shared_task(bind=True)
@@ -38,4 +38,5 @@ def search_frag_task(self, sp):
 
 @shared_task(bind=True)
 def save_lcms_data_task(self, pk):
-    save_lcms_data(pk, self)
+    lcms_data_transfer = LcmsDataTransfer(pk, None, self)
+    lcms_data_transfer.transfer()
