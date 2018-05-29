@@ -28,7 +28,7 @@ import sqlite3
 import numpy as np
 from django.db import connection
 from metab.utils.sql_utils import sql_column_names, check_table_exists_sqlite
-from metab.utils.update_cannotations import update_cannotations
+from metab.utils.update_cannotations import UpdateCannotations
 from metab.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound, get_inchi_from_chebi
 import uuid
 from django.conf import settings
@@ -48,14 +48,29 @@ class LcmsDataTransfer(object):
 
         self.cpeakgroupmeta_class = CPeakGroupMeta
 
+    def set_cpeakgroupmeta(self):
+        CPeakGroupMeta = self.cpeakgroupmeta_class
+
+        cpgm = CPeakGroupMeta(metabinputdata=self.md)
+        cpgm.save()
+        return cpgm
+
     def transfer(self, celery_obj=None):
+        ###################################
+        # first set cpeakgroupmeta
+        ###################################
+        # the cpeakgroupmet can be update to use an extended cpeakgroupmeta class which contains more infor
+        # e.g. Investigation and assay details
+        cpgm = self.set_cpeakgroupmeta()
+
+
         ###################################
         # Get map of filename-to-class
         ###################################
         print 'filemap'
         if celery_obj:
             celery_obj.update_state(state='Get map of filename-to-class', meta={'current': 1, 'total': 100})
-        xfi_d, mfile_d = self.save_xcms_file_info()
+        xfi_d, mfile_d = self.save_xcms_file_info(cpgm)
 
         ###################################
         # Get scan meta info
@@ -169,7 +184,8 @@ class LcmsDataTransfer(object):
         cpgm = self.cpeakgroupmeta_class.objects.get(metabinputdata=self.md)
         if celery_obj:
             celery_obj.update_state(state='Update cpeak group annotation summary', meta={'current': 90, 'total': 100})
-        update_cannotations(cpgm=cpgm)
+        uc = UpdateCannotations(cpgm=cpgm)
+        uc.update_cannotations()
 
         if celery_obj:
             celery_obj.update_state(state='SUCCESS', meta={'current': 100, 'total': 100})
@@ -303,13 +319,9 @@ class LcmsDataTransfer(object):
         CPeak.objects.bulk_create(cpeaks)
 
 
-    def save_xcms_grouped_peaks(self):
+    def save_xcms_grouped_peaks(self, cpgm):
         md = self.md
         cursor = self.cursor
-        CPeakGroupMeta = self.cpeakgroupmeta_class
-
-        cpgm = CPeakGroupMeta(metabinputdata=md)
-        cpgm.save()
 
         cursor.execute('SELECT * FROM  c_peak_groups')
         names = sql_column_names(cursor)
@@ -734,7 +746,7 @@ class LcmsDataTransfer(object):
 
             # Expect to have majority of KEGG in the Compound model already
             kegg_id = row[names['mpc']].split(':')[1]
-            comp_search = Compound.objects.filter(kegg_id__regex='("|^|,){}(,|$|")'.format(kegg_id))
+            comp_search = Compound.objects.filter(kegg_id__regex='("|^|,){}(,|$|")'.format(kegg_id)) # this needs to be update to be proper relational as the regex fails in some cases!
             print c, kegg_id
             if comp_search:
                 comp = comp_search[0]

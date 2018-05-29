@@ -32,7 +32,11 @@ def get_inchi_from_chebi(chebi_id):
 
     chebi_entry = chebi_con.getCompleteEntity(chebi_id)
 
+    print 'CHEBI search', chebi_id, chebi_entry
+
+
     if 'inchikey' in chebi_entry:
+        print 'FOUND INCHI KEY', chebi_entry.inchikey
         return chebi_entry.inchikey
     else:
         return ''
@@ -80,7 +84,7 @@ def get_kegg_compound(cid):
             chebi = mtch.group(1).strip()
             full_str = re.sub("\s+", ",", chebi)
             kegg_compound['chebi_id'] = full_str
-            kegg_compound['chebi_id_single'] = full_str.split(',')[0]
+            kegg_compound['chebi_id_single'] = full_str.split(',')[0].strip()
             chebi_count += 1
 
 
