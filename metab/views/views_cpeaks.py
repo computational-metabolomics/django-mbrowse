@@ -64,8 +64,7 @@ class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, ListView):
     template_name = 'metab/cpeakgroup_annotations.html'
 
     def get_queryset(self):
-
-        return CAnnotation.objects.filter(cpeakgroup_id= self.kwargs.get('cgid')).order_by('-weighted_score')
+        return self.model.objects.filter(cpeakgroup_id= self.kwargs.get('cgid')).order_by('-weighted_score')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -85,7 +84,7 @@ class CAnnotationsListAllView(LoginRequiredMixin, SingleTableMixin, ListView):
     template_name = 'metab/cpeakgroup_annotations_all.html'
 
     def get_queryset(self):
-        return CAnnotation.objects.all().order_by('-weighted_score')
+        return self.model.objects.all().order_by('-weighted_score')
 
 
 

@@ -11,6 +11,8 @@ from metab.models import (
 from bulk_update.helper import bulk_update
 
 class UpdateCannotations(object):
+    cannotation_class = CAnnotation
+
     def __init__(self, cpgm):
         self.cpgm = cpgm
 
@@ -22,6 +24,7 @@ class UpdateCannotations(object):
         self.add_sm_canns(cpgm)
         self.weighted_score(cpgm)
         self.update_best_match(cpgm)
+        self.rank_groups(cpgm)
 
     def update_best_match(self, cpgm):
         cpgqs = CPeakGroup.objects.filter(
@@ -47,15 +50,15 @@ class UpdateCannotations(object):
         pmas = ProbmetabAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm)
         new_cans = []
         for pma in pmas:
-            can = CAnnotation.objects.filter(compound=pma.compound, cpeakgroup=pma.cpeakgroup)
+            can = self.cannotation_class.objects.filter(compound=pma.compound, cpeakgroup=pma.cpeakgroup)
             if can:
                 can[0].ms1_average_score = pma.prob
                 can[0].save()
             else:
-                new_can = CAnnotation(cpeakgroup=pma.cpeakgroup, compound=pma.compound, ms1_average_score=pma.prob)
+                new_can = self.cannotation_class(cpeakgroup=pma.cpeakgroup, compound=pma.compound, ms1_average_score=pma.prob)
                 new_cans.append(new_can)
 
-        CAnnotation.objects.bulk_create(new_cans)
+        self.cannotation_class.objects.bulk_create(new_cans)
 
 
     def add_metfrag_canns(self, cpgm):
@@ -68,17 +71,17 @@ class UpdateCannotations(object):
         )
         new_cans = []
         for mfa in mfas:
-            can = CAnnotation.objects.filter(compound_id=mfa['compound'], cpeakgroup_id=mfa['s_peak_meta__cpeak__cpeakgroup'])
+            can = self.cannotation_class.objects.filter(compound_id=mfa['compound'], cpeakgroup_id=mfa['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].metfrag_average_score = mfa['avg_score']
                 can[0].save()
             else:
-                new_can = CAnnotation(cpeakgroup_id=mfa['s_peak_meta__cpeak__cpeakgroup'],
+                new_can = self.cannotation_class(cpeakgroup_id=mfa['s_peak_meta__cpeak__cpeakgroup'],
                                   compound_id=mfa['compound'],
                                   metfrag_average_score=mfa['avg_score'])
                 new_cans.append(new_can)
 
-        CAnnotation.objects.bulk_create(new_cans)
+        self.cannotation_class.objects.bulk_create(new_cans)
 
     def add_sm_canns(self, cpgm):
 
@@ -91,18 +94,18 @@ class UpdateCannotations(object):
         )
         new_cans = []
         for sm in sms:
-            can = CAnnotation.objects.filter(compound_id=sm['library_spectra_meta__inchikey'],
+            can = self.cannotation_class.objects.filter(compound_id=sm['library_spectra_meta__inchikey'],
                                              cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].spectral_matching_average_score = sm['avg_score']
                 can[0].save()
             else:
-                new_can = CAnnotation(cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'],
+                new_can = self.cannotation_class(cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'],
                                   compound_id=sm['library_spectra_meta__inchikey'],
                                   spectral_matching_average_score=sm['avg_score'])
                 new_cans.append(new_can)
 
-        CAnnotation.objects.bulk_create(new_cans)
+        self.cannotation_class.objects.bulk_create(new_cans)
 
 
 
@@ -116,17 +119,17 @@ class UpdateCannotations(object):
             )
         new_cans = []
         for csia in csias:
-            can = CAnnotation.objects.filter(compound_id=csia['compound'], cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
+            can = self.cannotation_class.objects.filter(compound_id=csia['compound'], cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].sirius_csifingerid_average_score = csia['avg_score']
                 can[0].save()
             else:
-                new_can = CAnnotation(cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'],
+                new_can = self.cannotation_class(cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'],
                                   compound_id=csia['compound'],
                                   sirius_csifingerid_average_score=csia['avg_score'])
                 new_cans.append(new_can)
 
-        CAnnotation.objects.bulk_create(new_cans)
+        self.cannotation_class.objects.bulk_create(new_cans)
 
 
     def weighted_score(self, cpgm):
@@ -140,7 +143,7 @@ class UpdateCannotations(object):
         else:
             canw = CAnnotationWeight.objects.all()[0]
 
-        for can in CAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm):
+        for can in self.cannotation_class.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm):
             sm_score = can.spectral_matching_average_score if can.spectral_matching_average_score else 0
             ms1_score = can.ms1_average_score if can.ms1_average_score else 0
             csi_score = can.sirius_csifingerid_average_score if can.sirius_csifingerid_average_score else 0
@@ -151,3 +154,29 @@ class UpdateCannotations(object):
                              (csi_score * canw.sirius_csifingerid_weight) + \
                              (metfrag_score * canw.metfrag_weight)
             can.save()
+
+    def rank_groups(self, cpgm):
+
+        r = 1
+        update_cans = []
+        start = True
+        current_id = ''
+        for c, can in enumerate(CAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm).order_by('cpeakgroup_id', '-weighted_score')):
+            if start:
+                current_id = can.cpeakgroup.id
+                start=False
+
+            if c % 5000 == 0:
+                bulk_update(update_cans)
+                update_cans = []
+
+            if not current_id == can.cpeakgroup.id:
+                r=1
+
+            can.rank = r
+            update_cans.append(can)
+            current_id = can.cpeakgroup.id
+            r += 1
+
+        bulk_update(update_cans)
+

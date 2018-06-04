@@ -18,7 +18,13 @@ from django_tables2.utils import A
 from django_tables2_reports.tables import TableReport
 from django_tables2_column_shifter.tables import ColumnShiftTable
 
+class NumberColumn4(tables.Column):
+    def render(self, value):
+        return '{:0.4f}'.format(value)
 
+class NumberColumn2(tables.Column):
+    def render(self, value):
+        return '{:0.2f}'.format(value)
 
 class MFileTable(GFileTable):
 
@@ -42,8 +48,13 @@ class CPeakGroupTable(ColumnShiftTable):
     # view_data = tables.LinkColumn('peakplot', text='view peaks', args=[A('id'), 1])
     # view_annotations = tables.LinkColumn('annotations', text='view annotations', args=[A('id')])
     # best_score = tables.TemplateColumn("{{ value|safe|floatformat:'3' }}")
-    # mzmed = tables.TemplateColumn("{{ value|safe|floatformat:'5' }}")
-    # rtmed = tables.TemplateColumn("{{ value|safe|floatformat:'2' }}")
+    mzmed = NumberColumn4()
+    mzmax = NumberColumn4()
+    mzmin = NumberColumn4()
+    rtmed = NumberColumn2()
+    rtmin = NumberColumn2()
+    rtmax = NumberColumn2()
+    best_score = NumberColumn2()
 
     eics = tables.LinkColumn('eics', verbose_name='View EICs',
                                             text='view', args=[A('id')])
@@ -90,8 +101,15 @@ class CAnnotationTable(ColumnShiftTable):
     compound_name = tables.Column(accessor='compound.name', verbose_name='Compound name')
     pubchem_ids = tables.Column(accessor='compound.pubchem_id', verbose_name='PubChem cid(s)')
     kegg_ids = tables.Column(accessor='compound.kegg_id', verbose_name='KEGG cid(s)')
-    mzmed = tables.Column(accessor='cpeakgroup.mzmed',verbose_name='mzmed')
-    rtmed = tables.Column(accessor='cpeakgroup.mzmed', verbose_name='rtmed')
+    mzmed = NumberColumn4(accessor='cpeakgroup.mzmed',verbose_name='mzmed')
+    rtmed = NumberColumn2(accessor='cpeakgroup.mzmed', verbose_name='rtmed')
+
+    spectral_matching_average_score =NumberColumn2()
+    metfrag_average_score =NumberColumn2()
+    mzcloud_average_score = NumberColumn2()
+    sirius_csifingerid_average_score = NumberColumn2()
+    ms1_average_score = NumberColumn2()
+
 
     class Meta:
 

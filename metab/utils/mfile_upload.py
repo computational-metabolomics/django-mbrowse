@@ -3,7 +3,7 @@ import tempfile
 import os
 import shutil
 from django.core.files import File
-
+from gfiles.utils.save_as_symlink import save_as_symlink
 from metab.models import Run, MFile, MFileSuffix
 from django.conf import settings
 
@@ -112,8 +112,7 @@ def add_mfiles(namelist, runs, user, save_as_link=False, celery_obj=False):
                           mfilesuffix=get_mfile_suffix(suffix), user=user)
 
         if save_as_link:
-            mfile.data_file.name = os.path.abspath(n)
-            mfile.save()
+            mfile = save_as_symlink(os.path.abspath(n), original_filename, mfile)
         else:
             mfile.data_file.save(original_filename, File(open(n, 'r')))
             mfile.save()

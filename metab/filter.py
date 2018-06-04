@@ -22,10 +22,10 @@ class CPeakGroupFilter(django_filters.FilterSet):
     class Meta:
         model = CPeakGroup
         fields = {
-            'mzmed': ['range'],
-            'rtmed': ['range'],
-            'isotopes': ['exact'],
-            'adducts': ['exact']
+            'mzmed': ['gt', 'lt'],
+            'rtmed': ['gt', 'lt'],
+            'isotopes': ['contains'],
+            'adducts': ['contains']
             # 'msms_count': ['range'],
             # 'accessible': ['isnull']
         }

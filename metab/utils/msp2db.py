@@ -430,6 +430,10 @@ class LibraryData(object):
                 if not self.compound_info['pubchem_id'] and self.compound_info['inchikey_id']:
                     self.set_inchi_pcc(self.compound_info['inchikey_id'], 'inchikey', 0)
 
+                if not self.compound_info['name']:
+                    self.compound_info['name'] = 'unknown name'
+
+
 
                 if not self.compound_info['inchikey_id'] in self.compound_ids:
                     self.compound_info_all.append( tuple(self.compound_info.values()) + (other_name_s,
@@ -437,6 +441,9 @@ class LibraryData(object):
                                                                                          str(datetime.datetime.now()),
                                                                                          ))
                     self.compound_ids.append(self.compound_info['inchikey_id'])
+
+                if not self.meta_info['accession']:
+                    self.meta_info['accession'] = 'unknown accession'
 
 
                 self.meta_info_all.append(

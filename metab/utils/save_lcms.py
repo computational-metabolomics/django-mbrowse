@@ -33,6 +33,7 @@ from metab.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound
 import uuid
 from django.conf import settings
 import re
+import os
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
@@ -46,7 +47,9 @@ class LcmsDataTransfer(object):
         self.conn = sqlite3.connect(self.md.gfile.data_file.path)
         self.cursor = self.conn.cursor()
 
+        # this means we can inherit in MOGI a
         self.cpeakgroupmeta_class = CPeakGroupMeta
+
 
     def set_cpeakgroupmeta(self):
         CPeakGroupMeta = self.cpeakgroupmeta_class
@@ -70,7 +73,7 @@ class LcmsDataTransfer(object):
         print 'filemap'
         if celery_obj:
             celery_obj.update_state(state='Get map of filename-to-class', meta={'current': 1, 'total': 100})
-        xfi_d, mfile_d = self.save_xcms_file_info(cpgm)
+        xfi_d, mfile_d = self.save_xcms_file_info()
 
         ###################################
         # Get scan meta info
@@ -86,9 +89,9 @@ class LcmsDataTransfer(object):
         # Get scan peaks
         ###################################
         print 'scan peaks'
-        if celery_obj:
-            celery_obj.update_state(state='Get scan peaks', meta={'current': 20, 'total': 100})
-        self.save_s_peaks()
+        # if celery_obj:
+        #     celery_obj.update_state(state='Get scan peaks', meta={'current': 20, 'total': 100})
+        # self.save_s_peaks()
 
         ###################################
         # Get individual peaklist
@@ -105,14 +108,14 @@ class LcmsDataTransfer(object):
         print 'c grouped peaks'
         if celery_obj:
             celery_obj.update_state(state='Get grouped peaks', meta={'current': 40, 'total': 100})
-        self.save_xcms_grouped_peaks()
+        self.save_xcms_grouped_peaks(cpgm)
 
         ###################################
         # Save EIC
         ###################################
         # print 'EIC'
         if celery_obj:
-            celery_obj.update_state(state='Get EICs', meta={'current': 10, 'total': 100})
+            celery_obj.update_state(state='Get EICs', meta={'current': 45, 'total': 100})
         self.save_eics()
 
         ###################################
@@ -180,20 +183,32 @@ class LcmsDataTransfer(object):
         ####################################
         # Update cpeak group annotation summary
         ####################################
-        print 'Update cpeak group annotation summary'
         cpgm = self.cpeakgroupmeta_class.objects.get(metabinputdata=self.md)
         if celery_obj:
             celery_obj.update_state(state='Update cpeak group annotation summary', meta={'current': 90, 'total': 100})
+
         uc = UpdateCannotations(cpgm=cpgm)
         uc.update_cannotations()
-
         if celery_obj:
             celery_obj.update_state(state='SUCCESS', meta={'current': 100, 'total': 100})
+
 
     def save_xcms_file_info(self):
         md = self.md
         cursor = self.cursor
         mfiles = self.mfiles
+
+        if check_table_exists_sqlite(cursor, 'xset_classes'):
+
+            cursor.execute('SELECT * FROM  xset_classes')
+            names = sql_column_names(cursor)
+            xset_classes = {}
+            for row in self.cursor:
+                xset_classes[row[names['row_names']]] = row[names['class']]
+
+        else:
+            xset_classes = {}
+
 
         cursor.execute('SELECT * FROM  fileinfo')
 
@@ -205,8 +220,14 @@ class LcmsDataTransfer(object):
         for row in self.cursor:
             idi = row[names['fileid']]
             fn = row[names['filename']]
-            sampleType = row[names['sampleclass']]
             print fn
+
+            if xset_classes:
+                sampleType = xset_classes[os.path.splitext(fn)[0]]
+            else:
+                # old database schema has this stored in the same table
+                sampleType = row[names['sampleclass']]
+
             mfile = mfiles.filter(original_filename=fn)[0]  # if multiple with this name for this investigation (which
             # there should not be), we just take the first file
             if mfile:
@@ -647,6 +668,11 @@ class LcmsDataTransfer(object):
             if i > 50:
                 break
 
+            UID = row[names['UID']]
+
+            uid_l = UID.split('-')
+            pid = uid_l[2]
+
             if not row[names['InChIKey']]:
                 # currently only add compounds we can have a name for (should be all cases if PubChem was used)
                 continue
@@ -708,7 +734,7 @@ class LcmsDataTransfer(object):
                     comp.save()
 
             match = MetFragAnnotation(idi=i + 1,
-                                      s_peak_meta_id=speakmeta_d[int(row[names['pid']])],
+                                      s_peak_meta_id=speakmeta_d[int(pid)],
                                       compound=comp,
                                       explained_peaks=row[names['ExplPeaks']],
                                       formula_explained_peaks=row[names['FormulasOfExplPeaks']],
@@ -741,7 +767,7 @@ class LcmsDataTransfer(object):
 
         for c, row in enumerate(cursor):
 
-            if c > 1000:
+            if c > 100:
                 break
 
             # Expect to have majority of KEGG in the Compound model already
@@ -789,11 +815,17 @@ class LcmsDataTransfer(object):
         meta = CSIFingerIDMeta()
         meta.save()
         for i, row in enumerate(cursor):
+            UID = row[names['UID']]
+
+            uid_l = UID.split('-')
+            pid = uid_l[2]
+
+
             print i
             if i > 50:
                 break
 
-            if float(row[names['Rank']]) > 5:
+            if float(row[names['Rank']]) > 10:
                 continue
 
             comps = []
@@ -820,7 +852,7 @@ class LcmsDataTransfer(object):
             print comps
 
             match = CSIFingerIDAnnotation(idi=i + 1,
-                                          s_peak_meta_id=speakmeta_d[int(row[names['pid']])],
+                                          s_peak_meta_id=speakmeta_d[int(pid)],
                                           inchikey2d=row[names['InChIkey2D']],
                                           molecular_formula=row[names['molecularFormula']],
                                           rank=row[names['Rank']],
@@ -832,7 +864,7 @@ class LcmsDataTransfer(object):
                                           )
             match.save()
             match.compound.add(*comps)
-            speaks.append(speakmeta_d[int(row[names['pid']])])
+            speaks.append(speakmeta_d[int(pid)])
 
         for i in speaks:
             anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=i, csifingeridmeta=meta)

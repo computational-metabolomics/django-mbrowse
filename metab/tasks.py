@@ -7,7 +7,7 @@ from metab.utils.msp2db import LibraryData
 from metab.utils.search_mz_nm import search_mz, search_nm
 from metab.utils.search_frag import search_frag
 from metab.utils.save_lcms import LcmsDataTransfer
-
+from metab.utils.update_cannotations import UpdateCannotations
 
 @shared_task(bind=True)
 def upload_files_from_dir_task(self, filelist, username, save_as_link):
@@ -19,7 +19,7 @@ def upload_library(self, msp_pth, name):
 
     self.update_state(state='Uploading library spectra (no progress bar)', meta={'current': 0, 'total': 100})
     libdata = LibraryData(msp_pth=msp_pth, name=name, db_pth=None, db_type='django_mysql',
-                          source=name, d_form=False, chunk=5000, celery_obj=self)
+                          source=name, d_form=False, chunk=200, celery_obj=self)
 
 
 @shared_task(bind=True)

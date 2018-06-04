@@ -72,10 +72,13 @@ class CAnnotation(models.Model):
 
 
     weighted_score = models.FloatField(null=True, blank=True)
+    rank = models.IntegerField(null=True, blank=True)
 
 
     def __str__(self):              # __unicode__ on Python 2
         return '{} {} {}'.format(self.id, self.compound, self.cpeakgroup)
+
+
 
 class CAnnotationWeight(models.Model):
     spectral_matching_weight = models.FloatField(default=1)
