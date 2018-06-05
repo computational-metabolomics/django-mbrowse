@@ -255,7 +255,7 @@ class LcmsDataTransfer(object):
         for row in cursor:
             # this needs to be update after SQLite update in msPurity
             # to stop ram memory runnning out
-            if len(speaks) % 5000 == 0:
+            if len(speakmetas) % 5000 == 0:
                 SPeakMeta.objects.bulk_create(speakmetas)
                 speaks = []
 
