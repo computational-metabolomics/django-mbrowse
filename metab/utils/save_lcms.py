@@ -790,6 +790,9 @@ class LcmsDataTransfer(object):
         for c, row in enumerate(cursor):
             # if c > 50:
             #     break
+            if not row[names['grp_id']]:
+                continue
+
             if len(matches) % 1000 == 0:
                 ProbmetabAnnotation.objects.bulk_create(matches)
                 matches = []
