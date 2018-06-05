@@ -842,8 +842,11 @@ class LcmsDataTransfer(object):
         meta = CSIFingerIDMeta()
         meta.save()
         for i, row in enumerate(cursor):
-            UID = row[names['UID']]
 
+            UID = row[names['UID']]
+            if UID=='UID':
+                continue
+                
             uid_l = UID.split('-')
             pid = uid_l[2]
             # if i > 50:
