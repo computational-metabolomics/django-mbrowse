@@ -934,12 +934,18 @@ def create_compound_from_pubchem_local(row, names):
 
         return mtch_compound
     else:
+        name = 'unknown'
+        if row[names['name']]:
+            name = row[names['name']]
+        elif row[names['iupac_name']]:
+            name = row[names['iupac_name']]
+
         # we create the compound
         comp = Compound(inchikey_id=inchikey,
                  pubchem_id=cid,
                  exact_mass=row[names['exact_mass']],
                  molecular_formula=row[names['mf']],
-                 name=row[names['name']] if row[names['name']] else row[names['iupac_name']],
+                 name=name,
                  monoisotopic_mass=row[names['monoisotopic_weight']],
                  molecular_weight=row[names['molecular_weight']],
                  iupac_name=row[names['iupac_name']],
