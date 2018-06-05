@@ -786,7 +786,7 @@ class LcmsDataTransfer(object):
         matches = []
 
         for c, row in enumerate(cursor):
-            if i > 50:
+            if c > 50:
                 break
 
             # Expect to have majority of KEGG in the Compound model already
