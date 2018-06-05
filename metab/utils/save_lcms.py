@@ -782,18 +782,16 @@ class LcmsDataTransfer(object):
         names = sql_column_names(cursor)
 
         cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
-        print cpeakgroups_d
+
         matches = []
 
         for c, row in enumerate(cursor):
-
-            if c > 100:
+            if i > 50:
                 break
 
             # Expect to have majority of KEGG in the Compound model already
             kegg_id = row[names['mpc']].split(':')[1]
             comp_search = Compound.objects.filter(kegg_id__regex='("|^|,){}(,|$|")'.format(kegg_id)) # this needs to be update to be proper relational as the regex fails in some cases!
-            print c, kegg_id
             if comp_search:
                 comp = comp_search[0]
             else:
@@ -828,7 +826,6 @@ class LcmsDataTransfer(object):
 
         speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
 
-        matches = []
 
         c = 0
         speaks = []
@@ -839,11 +836,10 @@ class LcmsDataTransfer(object):
 
             uid_l = UID.split('-')
             pid = uid_l[2]
-
-
-            print i
             if i > 50:
                 break
+
+            print i
 
             if float(row[names['Rank']]) > 10:
                 continue
@@ -855,8 +851,7 @@ class LcmsDataTransfer(object):
                 comp_search = get_pubchem_sqlite_local(pubchem_id)
 
                 if comp_search:
-                    comp = comp_search[0]
-                    comps.append(comp)
+                    comps.append(comp_search)
                 else:
                     pc_matches = get_pubchem_compound(pubchem_id, 'cid')
                     if pc_matches:
@@ -868,8 +863,6 @@ class LcmsDataTransfer(object):
                         comps.append(comp)
                     else:
                         print 'No matching pubchemid'
-
-            print comps
 
             match = CSIFingerIDAnnotation(idi=i + 1,
                                           s_peak_meta_id=speakmeta_d[int(pid)],
