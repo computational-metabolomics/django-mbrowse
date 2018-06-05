@@ -698,10 +698,11 @@ class LcmsDataTransfer(object):
                 continue
 
             if float(row[names['Score']]) < 0.6:
-                # no point storing anything less than 0.5
+                # no point storing anything less than 0.6
                 continue
 
             if c == 1000:
+                print c
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
                 c = 0
@@ -730,6 +731,7 @@ class LcmsDataTransfer(object):
                 comp = get_pubchem_sqlite_local(identifier)
 
                 if not comp:
+
                     pc_matches = get_pubchem_compound(identifier, 'cid')
 
                     if not pc_matches:
@@ -951,7 +953,7 @@ def save_compound_kegg(kegg_compound):
 
 
     comp = Compound(inchikey_id=kegg_compound['inchikey_id'] if 'inchikey_id' in kegg_compound else 'UNKNOWN_' + str(uuid.uuid4()),
-                    name=kegg_compound['name'] if 'name' in kegg_compound else None,
+                    name=kegg_compound['name'] if 'name' in kegg_compound else 'unknown name',
                     molecular_formula=kegg_compound['mf'] if 'mf' in kegg_compound else None,
                     exact_mass=kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
                     kegg_id=kegg_compound['kegg_cid'],
@@ -980,7 +982,7 @@ def create_pubchem_comp(pc_match, kegg_id=None):
         name = pc_match.synonyms[0]
         other_names = (',').join(pc_match.synonyms)
     else:
-        name = pc_match.iupac_name
+        name = pc_match.iupac_name if pc_match.iupac_name else 'unknown name'
         other_names = pc_match.iupac_name
 
     comp = Compound(inchikey_id=pc_match.inchikey,
