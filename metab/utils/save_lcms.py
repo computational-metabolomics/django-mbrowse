@@ -89,9 +89,9 @@ class LcmsDataTransfer(object):
         # Get scan peaks
         ###################################
         print 'scan peaks'
-        # if celery_obj:
-        #     celery_obj.update_state(state='Get scan peaks', meta={'current': 20, 'total': 100})
-        # self.save_s_peaks()
+        if celery_obj:
+            celery_obj.update_state(state='Get scan peaks', meta={'current': 20, 'total': 100})
+        self.save_s_peaks()
 
         ###################################
         # Get individual peaklist
@@ -685,8 +685,8 @@ class LcmsDataTransfer(object):
 
         c = 0
         for i, row in enumerate(cursor):
-            if i > 50:
-                break
+            # if i > 50:
+            #     break
 
             UID = row[names['UID']]
 
@@ -786,8 +786,8 @@ class LcmsDataTransfer(object):
         matches = []
 
         for c, row in enumerate(cursor):
-            if c > 50:
-                break
+            # if c > 50:
+            #     break
 
             # Expect to have majority of KEGG in the Compound model already
             kegg_id = row[names['mpc']].split(':')[1]
@@ -836,8 +836,8 @@ class LcmsDataTransfer(object):
 
             uid_l = UID.split('-')
             pid = uid_l[2]
-            if i > 50:
-                break
+            # if i > 50:
+            #     break
 
             print i
 
