@@ -80,7 +80,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'scan meta'
         if celery_obj:
-            celery_obj.update_state(state='Get map scan meta info', meta={'current': 10, 'total': 100})
+            celery_obj.update_state(state='Get map scan meta info', meta={'current': 5, 'total': 100})
 
         runs = {k: v.run for k, v in mfile_d.iteritems()}
         self.save_s_peak_meta(runs)
@@ -90,7 +90,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'scan peaks'
         if celery_obj:
-            celery_obj.update_state(state='Get scan peaks', meta={'current': 20, 'total': 100})
+            celery_obj.update_state(state='Get scan peaks', meta={'current': 10, 'total': 100})
         self.save_s_peaks()
 
         ###################################
@@ -98,7 +98,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'cpeaks'
         if celery_obj:
-            celery_obj.update_state(state='Get chromatographic peaks (indiv)', meta={'current': 30, 'total': 100})
+            celery_obj.update_state(state='Get chromatographic peaks (indiv)', meta={'current': 15, 'total': 100})
 
         self.save_xcms_individual_peaks(xfi_d)
 
@@ -107,7 +107,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'c grouped peaks'
         if celery_obj:
-            celery_obj.update_state(state='Get grouped peaks', meta={'current': 40, 'total': 100})
+            celery_obj.update_state(state='Get grouped peaks', meta={'current': 20, 'total': 100})
         self.save_xcms_grouped_peaks(cpgm)
 
         ###################################
@@ -115,7 +115,7 @@ class LcmsDataTransfer(object):
         ###################################
         # print 'EIC'
         if celery_obj:
-            celery_obj.update_state(state='Get EICs', meta={'current': 45, 'total': 100})
+            celery_obj.update_state(state='Get EICs', meta={'current': 25, 'total': 100})
         self.save_eics()
 
         ###################################
@@ -123,7 +123,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'peak link'
         if celery_obj:
-            celery_obj.update_state(state='Get peak links', meta={'current': 50, 'total': 100})
+            celery_obj.update_state(state='Get peak links', meta={'current': 30, 'total': 100})
 
         self.save_xcms_group_peak_link()
 
@@ -132,7 +132,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'adducts'
         if celery_obj:
-            celery_obj.update_state(state='Get adduct and isotopes', meta={'current': 55, 'total': 100})
+            celery_obj.update_state(state='Get adduct and isotopes', meta={'current': 35, 'total': 100})
 
         ruleset_d = self.save_adduct_rules()
         self.save_neutral_masses()
@@ -144,7 +144,7 @@ class LcmsDataTransfer(object):
         ###################################
         print 'fragmentation'
         if celery_obj:
-            celery_obj.update_state(state='Get scan peaks to chrom peak frag links', meta={'current': 60, 'total': 100})
+            celery_obj.update_state(state='Get scan peaks to chrom peak frag links', meta={'current': 40, 'total': 100})
 
         self.save_spekmeta_cpeak_frag_link()
 
@@ -153,7 +153,7 @@ class LcmsDataTransfer(object):
         ####################################
         print 'spectral matching'
         if celery_obj:
-            celery_obj.update_state(state='Get spectral matching annotations', meta={'current': 70, 'total': 100})
+            celery_obj.update_state(state='Get spectral matching annotations', meta={'current': 45, 'total': 100})
         self.save_spectral_matching_annotations()
 
         ####################################
@@ -161,7 +161,7 @@ class LcmsDataTransfer(object):
         ####################################
         print 'Metfrag'
         if celery_obj:
-            celery_obj.update_state(state='Get MetFrag annotations', meta={'current': 75, 'total': 100})
+            celery_obj.update_state(state='Get MetFrag annotations', meta={'current': 50, 'total': 100})
         self.save_metfrag()
 
         ####################################
@@ -169,7 +169,7 @@ class LcmsDataTransfer(object):
         ####################################
         print 'probmetab'
         if celery_obj:
-            celery_obj.update_state(state='Get probmetab annotations', meta={'current': 80, 'total': 100})
+            celery_obj.update_state(state='Get probmetab annotations', meta={'current': 70, 'total': 100})
         self.save_probmetab()
 
         ####################################
@@ -177,7 +177,7 @@ class LcmsDataTransfer(object):
         ####################################
         print 'CSI FingerID'
         if celery_obj:
-            celery_obj.update_state(state='Get CSI:FingerID annotations', meta={'current': 85, 'total': 100})
+            celery_obj.update_state(state='Get CSI:FingerID annotations', meta={'current': 80, 'total': 100})
         self.save_sirius_csifingerid()
 
         ####################################
@@ -685,8 +685,8 @@ class LcmsDataTransfer(object):
 
         c = 0
         for i, row in enumerate(cursor):
-            if i > 50:
-                break
+            # if i > 50:
+            #     break
 
             UID = row[names['UID']]
 
@@ -788,8 +788,8 @@ class LcmsDataTransfer(object):
         matches = []
 
         for c, row in enumerate(cursor):
-            if c > 50:
-                break
+            # if c > 50:
+            #     break
             if len(matches) % 1000 == 0:
                 ProbmetabAnnotation.objects.bulk_create(matches)
                 matches = []
@@ -843,8 +843,8 @@ class LcmsDataTransfer(object):
 
             uid_l = UID.split('-')
             pid = uid_l[2]
-            if i > 50:
-                break
+            # if i > 50:
+            #     break
 
             print i
 
