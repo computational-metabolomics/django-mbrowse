@@ -905,7 +905,7 @@ class LcmsDataTransfer(object):
 def get_pubchem_sqlite_local(pubchem_id):
     if not hasattr(settings, 'METAB_PUBCHEM_SQLITE_PTH') and not settings.METAB_PUBCHEM_SQLITE_PTH:
         return ''
-    
+
     if not pubchem_id:
         return ''
 
@@ -982,6 +982,8 @@ def save_compound_kegg(kegg_compound):
 
 
 def get_rank_score(l):
+    if len(l) == 1:
+        return [1]
     npa = np.array(l)
     rank_score = np.zeros(npa.shape[0])
     m = npa.max()
