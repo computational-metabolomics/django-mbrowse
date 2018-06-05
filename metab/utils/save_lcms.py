@@ -702,7 +702,7 @@ class LcmsDataTransfer(object):
                 continue
 
             if c == 1000:
-                print c
+                print i
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
                 c = 0
