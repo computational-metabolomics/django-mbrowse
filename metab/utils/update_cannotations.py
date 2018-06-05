@@ -160,23 +160,29 @@ class UpdateCannotations(object):
         r = 1
         update_cans = []
         start = True
-        current_id = ''
+        prev_id = ''
+        prev_score = 1
         for c, can in enumerate(CAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm).order_by('cpeakgroup_id', '-weighted_score')):
+            current_id = can.cpeakgroup.id
+            current_score = can.weighted_score
             if start:
-                current_id = can.cpeakgroup.id
                 start=False
 
             if c % 5000 == 0:
                 bulk_update(update_cans)
                 update_cans = []
 
-            if not current_id == can.cpeakgroup.id:
+            if current_score<prev_score:
+                r += 1
+
+            if not prev_id == current_id:
                 r=1
 
             can.rank = r
             update_cans.append(can)
-            current_id = can.cpeakgroup.id
-            r += 1
+            prev_id = can.cpeakgroup.id
+            prev_score = can.weighted_score
+
 
         bulk_update(update_cans)
 
