@@ -846,7 +846,7 @@ class LcmsDataTransfer(object):
             UID = row[names['UID']]
             if UID=='UID':
                 continue
-                
+
             uid_l = UID.split('-')
             pid = uid_l[2]
             # if i > 50:
@@ -904,6 +904,9 @@ class LcmsDataTransfer(object):
 
 def get_pubchem_sqlite_local(pubchem_id):
     if not hasattr(settings, 'METAB_PUBCHEM_SQLITE_PTH') and not settings.METAB_PUBCHEM_SQLITE_PTH:
+        return ''
+    
+    if not pubchem_id:
         return ''
 
     conn = sqlite3.connect(settings.METAB_PUBCHEM_SQLITE_PTH)
