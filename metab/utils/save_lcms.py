@@ -255,9 +255,9 @@ class LcmsDataTransfer(object):
         for row in cursor:
             # this needs to be update after SQLite update in msPurity
             # to stop ram memory runnning out
-            if len(speakmetas) % 5000 == 0:
+            if len(speakmetas) % 1000 == 0:
                 SPeakMeta.objects.bulk_create(speakmetas)
-                speaks = []
+                speakmetas = []
 
             speakmetas.append(
                 SPeakMeta(
@@ -309,7 +309,7 @@ class LcmsDataTransfer(object):
                 )
             )
             # to stop ram memory runnning out
-            if len(speaks) > 5000:
+            if len(speaks) > 1000:
                 SPeak.objects.bulk_create(speaks)
                 speaks = []
 
@@ -396,7 +396,7 @@ class LcmsDataTransfer(object):
         eics = []
         c = 0
         for row in cursor:
-            if c >= 5000:
+            if c >= 1000:
                 # to save memory
                 Eic.objects.bulk_create(eics)
                 eics = []
@@ -686,7 +686,7 @@ class LcmsDataTransfer(object):
                 # no point storing anything less than 0.5
                 continue
 
-            if c == 5000:
+            if c == 1000:
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
                 c = 0
