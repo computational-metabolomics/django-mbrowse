@@ -939,7 +939,7 @@ def create_compound_from_pubchem_local(row, names):
                  pubchem_id=cid,
                  exact_mass=row[names['exact_mass']],
                  molecular_formula=row[names['mf']],
-                 name=row[names['name']],
+                 name=row[names['name']] if row[names['name']] else row[names['iupac_name']],
                  monoisotopic_mass=row[names['monoisotopic_weight']],
                  molecular_weight=row[names['molecular_weight']],
                  iupac_name=row[names['iupac_name']],
