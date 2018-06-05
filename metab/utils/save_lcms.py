@@ -254,6 +254,11 @@ class LcmsDataTransfer(object):
         print names
         for row in cursor:
             # this needs to be update after SQLite update in msPurity
+            # to stop ram memory runnning out
+            if len(speaks) % 5000 == 0:
+                SPeakMeta.objects.bulk_create(speakmetas)
+                speaks = []
+
             speakmetas.append(
                 SPeakMeta(
                     run=runs[row[names['fileid']]],
