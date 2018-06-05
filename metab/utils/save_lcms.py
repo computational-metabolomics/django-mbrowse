@@ -325,6 +325,11 @@ class LcmsDataTransfer(object):
         cpeaks = []
 
         for row in cursor:
+
+            if len(cpeaks) % 1000 == 0:
+                CPeak.objects.bulk_create(cpeaks)
+                cpeaks = []
+
             cpeak = CPeak(idi=row[names['cid']],
                           mz=row[names['mz']],
                           mzmin=row[names['mzmin']],
@@ -356,6 +361,11 @@ class LcmsDataTransfer(object):
         cpeakgroup_d = {}
 
         for row in cursor:
+
+            if len(cpeakgroups) % 1000 == 0:
+                CPeakGroup.objects.bulk_create(cpeakgroups)
+                cpeakgroups = []
+
             cpeakgroup = CPeakGroup(idi=row[names['grpid']],
                                         mzmed=row[names['mz']],
                                         mzmin=row[names['mzmin']],
@@ -434,6 +444,11 @@ class LcmsDataTransfer(object):
         cpeaks_d = {c.idi: c.pk for c in CPeak.objects.filter(xcmsfileinfo__metabinputdata=md)}
 
         for row in cursor:
+
+            if len(cpeakgrouplink) % 1000 == 0:
+                CPeakGroupLink.objects.bulk_create(cpeakgrouplink)
+                cpeakgrouplink = []
+
             cpeakgrouplink.append(
                 CPeakGroupLink(
                     cpeak_id=cpeaks_d[row[names['cid']]],
