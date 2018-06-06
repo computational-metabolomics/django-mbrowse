@@ -49,7 +49,11 @@ class UpdateCannotations(object):
     def add_probmetab_canns(self, cpgm):
         pmas = ProbmetabAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm)
         new_cans = []
-        for pma in pmas:
+        for c, pma in enumerate(pmas):
+            if c % 1000 == 0:
+                self.cannotation_class.objects.bulk_create(new_cans)
+                new_cans = []
+
             can = self.cannotation_class.objects.filter(compound=pma.compound, cpeakgroup=pma.cpeakgroup)
             if can:
                 can[0].ms1_average_score = pma.prob
@@ -70,7 +74,13 @@ class UpdateCannotations(object):
             avg_score=Avg('score')
         )
         new_cans = []
-        for mfa in mfas:
+        for c, mfa in enumerate(mfas):
+
+            if c % 1000 == 0:
+                self.cannotation_class.objects.bulk_create(new_cans)
+                new_cans = []
+
+
             can = self.cannotation_class.objects.filter(compound_id=mfa['compound'], cpeakgroup_id=mfa['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].metfrag_average_score = mfa['avg_score']
@@ -93,7 +103,11 @@ class UpdateCannotations(object):
             avg_score=Avg('score')
         )
         new_cans = []
-        for sm in sms:
+        for c, sm in enumerate(sms):
+            if c % 1000 == 0:
+                self.cannotation_class.objects.bulk_create(new_cans)
+                new_cans = []
+
             can = self.cannotation_class.objects.filter(compound_id=sm['library_spectra_meta__inchikey'],
                                              cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'])
             if can:
@@ -118,7 +132,13 @@ class UpdateCannotations(object):
                 avg_score=Avg('rank_score')
             )
         new_cans = []
-        for csia in csias:
+        for c, csia in enumerate(csias):
+
+            if c % 1000 == 0:
+                self.cannotation_class.objects.bulk_create(new_cans)
+                new_cans = []
+
+
             can = self.cannotation_class.objects.filter(compound_id=csia['compound'], cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].sirius_csifingerid_average_score = csia['avg_score']
