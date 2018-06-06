@@ -168,7 +168,7 @@ class UpdateCannotations(object):
             if start:
                 start=False
 
-            if c % 5000 == 0:
+            if c % 1000 == 0:
                 bulk_update(update_cans)
                 update_cans = []
 
