@@ -35,6 +35,8 @@ from django.conf import settings
 import re
 import os
 
+TEST_MODE = True
+
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
         if mfile_ids:
@@ -43,6 +45,7 @@ class LcmsDataTransfer(object):
             self.mfiles = MFile.objects.all()
 
         self.md = MetabInputData.objects.get(pk=hdm_id)
+        self.mfile_d = {}
 
         self.conn = sqlite3.connect(self.md.gfile.data_file.path)
         self.cursor = self.conn.cursor()
@@ -60,20 +63,20 @@ class LcmsDataTransfer(object):
 
     def transfer(self, celery_obj=None):
         ###################################
-        # first set cpeakgroupmeta
-        ###################################
-        # the cpeakgroupmet can be update to use an extended cpeakgroupmeta class which contains more infor
-        # e.g. Investigation and assay details
-        cpgm = self.set_cpeakgroupmeta()
-
-
-        ###################################
         # Get map of filename-to-class
         ###################################
         print 'filemap'
         if celery_obj:
             celery_obj.update_state(state='Get map of filename-to-class', meta={'current': 1, 'total': 100})
         xfi_d, mfile_d = self.save_xcms_file_info()
+        self.mfile_d = mfile_d
+
+        ###################################
+        # first set cpeakgroupmeta
+        ###################################
+        # the cpeakgroupmet can be update to use an extended cpeakgroupmeta class which contains more infor
+        # e.g. Investigation and assay details
+        cpgm = self.set_cpeakgroupmeta()
 
         ###################################
         # Get scan meta info
@@ -685,8 +688,9 @@ class LcmsDataTransfer(object):
 
         c = 0
         for i, row in enumerate(cursor):
-            # if i > 50:
-            #     break
+            if TEST_MODE:
+                if i > 50:
+                    break
 
             UID = row[names['UID']]
 
@@ -788,8 +792,9 @@ class LcmsDataTransfer(object):
         matches = []
 
         for c, row in enumerate(cursor):
-            # if c > 50:
-            #     break
+            if TEST_MODE:
+                if c > 50:
+                    break
             if not row[names['grp_id']]:
                 continue
 
@@ -849,12 +854,13 @@ class LcmsDataTransfer(object):
 
             uid_l = UID.split('-')
             pid = uid_l[2]
-            # if i > 50:
-            #     break
+            if TEST_MODE:
+                if i > 50:
+                    break
 
             print i
 
-            if float(row[names['Rank']]) > 10:
+            if float(row[names['Rank']]) > 6:
                 continue
 
             comps = []
@@ -982,8 +988,14 @@ def save_compound_kegg(kegg_compound):
 
 
 def get_rank_score(l):
-    if len(l) == 1:
+    if len(l) <= 1:
+        # only 1 (or less)
         return [1]
+
+    if all(x == l[0] for x in l):
+        # all the same (just give all score of 1)
+        return [1] * len(l)
+
     npa = np.array(l)
     rank_score = np.zeros(npa.shape[0])
     m = npa.max()

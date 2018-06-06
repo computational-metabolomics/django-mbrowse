@@ -14,7 +14,7 @@ from django_tables2.views import SingleTableMixin
 
 from metab.models import MetabInputData, MFile, CPeakGroup, CPeakGroupMeta, Eic, SPeak, CAnnotation
 from metab.tables import CPeakGroupTable, CPeakGroupMetaTable, EicTable, SPeakTable, CAnnotationTable
-from metab.filter import CPeakGroupFilter
+from metab.filter import CPeakGroupFilter, CAnnotationFilter
 from metab.tasks import save_lcms_data_task
 
 #################################################################################
@@ -56,12 +56,13 @@ class CPeakGroupListView(LoginRequiredMixin, SingleTableMixin, FilterView):
         return CPeakGroup.objects.filter(cpeakgroupmeta_id= self.kwargs.get('cid'))
 
 
-class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, ListView):
+class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
     '''
     '''
     table_class = CAnnotationTable
     model = CAnnotation
     template_name = 'metab/cpeakgroup_annotations.html'
+    filterset_class = CAnnotationFilter
 
     def get_queryset(self):
         return self.model.objects.filter(cpeakgroup_id= self.kwargs.get('cgid')).order_by('-weighted_score')
@@ -76,12 +77,13 @@ class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, ListView):
 
 
 
-class CAnnotationsListAllView(LoginRequiredMixin, SingleTableMixin, ListView):
+class CAnnotationsListAllView(LoginRequiredMixin, SingleTableMixin, FilterView):
     '''
     '''
     table_class = CAnnotationTable
     model = CAnnotation
     template_name = 'metab/cpeakgroup_annotations_all.html'
+    filterset_class = CAnnotationFilter
 
     def get_queryset(self):
         return self.model.objects.all().order_by('-weighted_score')

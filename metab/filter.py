@@ -1,7 +1,7 @@
 from metab.models import MFile
 from gfiles.filter import GFileFilter
 from metab.models import CPeakGroup
-
+from mogi.models import CAnnotation
 import django_filters
 
 class MFileFilter(GFileFilter):
@@ -26,6 +26,27 @@ class CPeakGroupFilter(django_filters.FilterSet):
             'rtmed': ['gt', 'lt'],
             'isotopes': ['contains'],
             'adducts': ['contains']
+            # 'msms_count': ['range'],
+            # 'accessible': ['isnull']
+        }
+
+
+
+
+class CAnnotationFilter(django_filters.FilterSet):
+
+    def __init__(self, *args, **kwargs):
+        super(CAnnotationFilter, self).__init__(*args, **kwargs)
+        self.filters['cpeakgroup__mzmed'].label = 'mzmed'
+        self.filters['cpeakgroup__rtmed'].label = 'rtmed'
+
+
+    class Meta:
+        model = CAnnotation
+        fields = {
+            'cpeakgroup__mzmed': ['gt', 'lt'],
+            'cpeakgroup__rtmed': ['gt', 'lt'],
+            'compound__name': ['contains'],
             # 'msms_count': ['range'],
             # 'accessible': ['isnull']
         }
