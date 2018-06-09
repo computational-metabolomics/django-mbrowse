@@ -776,7 +776,7 @@ class LcmsDataTransfer(object):
                         print row
 
                     pc_match = pc_matches[0]
-                    print 'NEW COMP', pc_match.synonyms, pc_match.cid, pc_match.inchikey
+                    print 'NEW COMP', pc_match.cid, pc_match.inchikey
                     comp = create_pubchem_comp(pc_match)
                     comp.save()
 
