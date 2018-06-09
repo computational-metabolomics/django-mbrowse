@@ -1036,6 +1036,7 @@ def create_pubchem_comp(pc_match, kegg_id=None):
             other_names = pc_match.iupac_name
     except PubChemHTTPError as e:
         name = 'unknown name'
+        other_names = ''
 
     comp = Compound(inchikey_id=pc_match.inchikey,
                     systematic_name=pc_match.iupac_name,
