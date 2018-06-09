@@ -26,6 +26,7 @@ from metab.models import (
 from django.db.models import Count, Avg, F, Max
 import sqlite3
 import numpy as np
+from pubchempy import PubChemHTTPError
 from django.db import connection
 from metab.utils.sql_utils import sql_column_names, check_table_exists_sqlite
 from metab.utils.update_cannotations import UpdateCannotations
@@ -1025,12 +1026,16 @@ def get_rank_score(l):
     return rank_score
 
 def create_pubchem_comp(pc_match, kegg_id=None):
-    if pc_match.synonyms:
-        name = pc_match.synonyms[0]
-        other_names = (',').join(pc_match.synonyms)
-    else:
-        name = pc_match.iupac_name if pc_match.iupac_name else 'unknown name'
-        other_names = pc_match.iupac_name
+    try:
+
+        if pc_match.synonyms:
+            name = pc_match.synonyms[0]
+            other_names = (',').join(pc_match.synonyms)
+        else:
+            name = pc_match.iupac_name if pc_match.iupac_name else 'unknown name'
+            other_names = pc_match.iupac_name
+    except PubChemHTTPError as e:
+        name = 'unknown name'
 
     comp = Compound(inchikey_id=pc_match.inchikey,
                     systematic_name=pc_match.iupac_name,
