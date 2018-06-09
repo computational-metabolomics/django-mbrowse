@@ -631,9 +631,16 @@ class LcmsDataTransfer(object):
         cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
 
         matches = []
-        for row in cursor:
+        for c, row in enumerate(cursor):
+
+            if c % 1000 == 0:
+                SpectralMatching.objects.bulk_create(matches)
+                matches = []
+
             if row[names['source_name']] in ['massbank', 'mona-experimental']:
                 # Currently only works for mass bank (or anything from the experimental MONA library)
+
+
                 try:
                     lsm_id = library_d[row[names['accession']]]
                 except KeyError as e:
