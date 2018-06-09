@@ -511,6 +511,10 @@ class LcmsDataTransfer(object):
 
         nms = []
         for row in cursor:
+            if len(row) % 1000 == 0:
+                NeutralMass.objects.bulk_create(nms)
+                nms = []
+
             nm = NeutralMass(idi=row[names['nm_id']],
                              nm=row[names['mass']],
                              ips=row[names['ips']],
@@ -532,6 +536,10 @@ class LcmsDataTransfer(object):
         names = sql_column_names(cursor)
         ads = []
         for row in cursor:
+            if len(row) % 1000 == 0:
+                Adduct.objects.bulk_create(ads)
+                ads = []
+
             ad = Adduct(idi=row[names['add_id']],
                         adductrule_id=ruleset_d[row[names['rule_id']]],
                         cpeakgroup_id=cpeakgroups_d[row[names['grpid']]],
@@ -554,6 +562,10 @@ class LcmsDataTransfer(object):
         names = sql_column_names(cursor)
         isos = []
         for row in cursor:
+            if len(row) % 1000 ==0:
+                Isotope.objects.bulk_create(isos)
+                isos = []
+
             iso = Isotope(idi=row[names['iso_id']],
                           iso=row[names['iso']],
                           charge=row[names['charge']],
@@ -587,6 +599,10 @@ class LcmsDataTransfer(object):
 
         print names
         for row in cursor:
+            if len(speakmeta_cpeak_frag_links) % 1000 == 0:
+                SPeakMetaCPeakFragLink.objects.bulk_create(speakmeta_cpeak_frag_links)
+                speakmeta_cpeak_frag_links = []
+
             # this needs to be update after SQLite update in msPurity
             speakmeta_cpeak_frag_links.append(
                 SPeakMetaCPeakFragLink(
@@ -631,9 +647,9 @@ class LcmsDataTransfer(object):
         cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
 
         matches = []
-        for c, row in enumerate(cursor):
+        for row in cursor:
 
-            if c % 1000 == 0:
+            if len(matches) % 1000 == 0:
                 SpectralMatching.objects.bulk_create(matches)
                 matches = []
 
@@ -662,7 +678,6 @@ class LcmsDataTransfer(object):
 
         SpectralMatching.objects.bulk_create(matches)
 
-        # TODO: This is a temp solution (need to think about how to handle the 'best annotation match')
         # cursor.execute('SELECT * FROM  xcms_match')
         # namex = sql_column_names(cursor)
         #
@@ -693,7 +708,7 @@ class LcmsDataTransfer(object):
 
         matches = []
 
-        c = 0
+
         for i, row in enumerate(cursor):
             if TEST_MODE:
                 if i > 50:
@@ -712,11 +727,10 @@ class LcmsDataTransfer(object):
                 # no point storing anything less than 0.6
                 continue
 
-            if c == 1000:
+            if len(matches) % 1000 == 0:
                 print i
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
-                c = 0
 
             inchikey = row[names['InChIKey']]
             identifier = row[names['Identifier']]
@@ -778,7 +792,7 @@ class LcmsDataTransfer(object):
                                       score=row[names['Score']]
                                       )
             matches.append(match)
-            c += 1
+
 
         MetFragAnnotation.objects.bulk_create(matches)
 
@@ -848,8 +862,6 @@ class LcmsDataTransfer(object):
 
         speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
 
-
-        c = 0
         speaks = []
         meta = CSIFingerIDMeta()
         meta.save()
