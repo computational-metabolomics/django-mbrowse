@@ -8,12 +8,12 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='django-metab',
+    name='django-mbrowse',
     version='0.0.1',
     packages=find_packages(),
     include_package_data=True,
     license='GNU License',  # example license
-    description='Metabolomic analysis and organisation in Django',
+    description='Browse and View Metabolomic datasets',
     long_description=README,
     url='https://www.example.com/',
     author='Thomas N lawson',

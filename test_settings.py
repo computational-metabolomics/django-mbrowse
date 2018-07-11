@@ -1,6 +1,6 @@
 SECRET_KEY = 'fake-key'
 INSTALLED_APPS = [
-    'metab',
+    'mbrowse',
     'gfiles',
 
     'easy_thumbnails',
