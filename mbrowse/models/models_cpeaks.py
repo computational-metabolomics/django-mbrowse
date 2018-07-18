@@ -18,7 +18,7 @@ class XCMSFileInfo(models.Model):
 
 
 class CPeak(models.Model):
-    idi = models.IntegerField(blank=True, null=True)
+    idi = models.IntegerField(blank=True, null=True, help_text='id for the dataset')
     mz = models.FloatField()
     mzmin = models.FloatField()
     mzmax = models.FloatField()
