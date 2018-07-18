@@ -1,0 +1,26 @@
+language: python
+python:
+- '3.6'
+- '2.7'
+env:
+- DJANGO_VERSION=1.11
+install:
+- pip install .
+script: python runtests.py
+
+services:
+  - docker
+
+branches:
+  only:
+    - master
+
+deploy:
+  provider: pypi
+  on:
+    tags: true
+    all_branches: true
+    repo: computational-metabolomics/django-mbrowse
+  user: tomnl
+  password:
+    secure: MmPW6yBCFIL9kD6rwoscx+S09lGqp7d8uWwjuGTKUS0IfWj6Bm49TRmSenn13EQJ8rWuzpHOUgVfXFklHtBWQBg9FUMhbKL8RE+6xVm67BRCxfgd5ThP4f5tgjZQLnhh/IAt1QsqJxiwy3zDvVhLrfDd/jPrZF0oW0lYyI1sDunmEXr4AcS8h+UGXVRm5CQAVQ0m/DlILL92dAX9ePU+mSgyG9Bi9REUrAztjkvOxks2XeB7oakrC+JvdLEpgNaG3PoRIR1o3nfplqzAZwrgW+mbDNmI8/GPl5Izhbvt21GMdodwQo/D5YkkFxz64TzNdf6pOZWz4dq2YXVZ2Er8JS/MA1MmbTAYGOLJCFIuYnDPtF8E3EaM4lVcR39Mr3hTguTABf6BivCvxA+BGkQhCDly+GYY/5Tyv14tYcK/RVORE8B6Vjr5/onMZvCdvtJpUGkI0mzpiUH7pH2+0r9Pz4oRyFQdf1tVPmox5D4QoiAihn/+zTDduslB2Spx7jeK5k/llq4u5VWJieB7t3Dfr3604MeL6/x4AylvvSUk9AadR0dmzBJDi1Kgj2uDVls2oSbY3K2Qxgal1bsEOePn6kSdDRxSFdaDkspMxlqhfNs0pHReS4BOBo2btU6Qe7m5VmWi3tfe/HifqRkPkirCtT32S2htojxmdq7UaZWlLuY=
