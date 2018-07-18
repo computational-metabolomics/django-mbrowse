@@ -1,7 +1,7 @@
 from mbrowse.models import MFile
 from gfiles.filter import GFileFilter
 from mbrowse.models import CPeakGroup
-from mogi.models import CAnnotation
+from mbrowse.models import CAnnotation
 import django_filters
 
 class MFileFilter(GFileFilter):

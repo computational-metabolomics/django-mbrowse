@@ -6,7 +6,7 @@ from django.db import models
 from gfiles.models import GenericFile
 from django.contrib.auth.models import User
 
-from models_general import MetabInputData, Run
+from .models_general import MetabInputData, Run
 
 
 

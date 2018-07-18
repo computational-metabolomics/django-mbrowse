@@ -1,8 +1,7 @@
+from __future__ import print_function
 from django.db import connection
 from sqlite3 import OperationalError
 
-from dma.models import *
-import MySQLdb
 
 def insert_query_m(data, table, columns=None):
 
@@ -17,7 +16,7 @@ def insert_query_m(data, table, columns=None):
         else:
             stmt = "INSERT INTO " + table + " VALUES (" + type + ")"
 
-        print stmt
+        print(stmt)
 
         cursor = connection.cursor()
         cursor.executemany(stmt, data)
@@ -71,7 +70,7 @@ def check_table_exists_sqlite(cursor, tablename):
     #https://stackoverflow.com/questions/17044259/python-how-to-check-if-table-exists
     try:
         qry =cursor.execute("SELECT NULL FROM {} LIMIT 1".format(tablename))
-    except OperationalError, e:
+    except (OperationalError, e):
         return False
 
     return True

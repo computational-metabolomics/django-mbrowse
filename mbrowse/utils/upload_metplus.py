@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sqlite3
 from mbrowse.utils.sql_utils import sql_column_names, check_table_exists_sqlite
 from mbrowse.models import Compound
@@ -19,12 +20,13 @@ def upload_metplus(db_pth):
     cursor.next() # first row is header (strange for an sqlite database!)
     c=0
     for i, row in enumerate(cursor):
-        print i
+
         if Compound.objects.filter(inchikey_id=row[names['INCHIKEY']]):
             continue
 
-        if c>1000:
+        if c > 1000:
             Compound.objects.bulk_create(comps)
+            print(i)
             comps = []
             c = 0
         comp = Compound(

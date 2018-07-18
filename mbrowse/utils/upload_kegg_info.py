@@ -1,3 +1,4 @@
+from __future__ import print_function
 import requests
 import re
 import pubchempy as pcp
@@ -13,10 +14,10 @@ def get_pubchem_compound(in_str, type='inchikey'):
     try:
         pccs = pcp.get_compounds(in_str, type)
     except pcp.BadRequestError as e:
-        print e
+        print(e)
         return 0
     except pcp.TimeoutError as e:
-        print e
+        print(e)
         return 0
 
     return pccs
@@ -35,7 +36,7 @@ def get_inchi_from_chebi(chebi_id):
 
 
     if 'inchikey' in chebi_entry:
-        print 'FOUND INCHI KEY', chebi_entry.inchikey
+        print('FOUND INCHI KEY', chebi_entry.inchikey)
         return chebi_entry.inchikey
     else:
         return ''
@@ -106,7 +107,7 @@ def get_kegg_compound(cid):
 
 
     if chebi_count > 1:
-        print 'more than 1 pubchem!'
+        print('more than 1 pubchem!')
 
     return kegg_compound
 
@@ -120,20 +121,16 @@ def get_kegg_info():
     rows = cont.split('\n')
 
     kegg_compounds = []
-    go = False
+
     for i, row in enumerate(rows):
         # print row
 
 
         entry = row.split('\t')
-        print entry
+        print(entry)
         cid = entry[0].split(':')[1]
 
-        if cid=='C18668':
-            go = True
 
-        if not go:
-            continue
 
 
 
@@ -202,7 +199,7 @@ def get_kegg_info():
 
                 mtch_compound.exact_mass = kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
 
-                print 'UPDATE'
+                print('UPDATE')
 
                 # if mtch_compound.other_names:
                 #     mtch_compound.other_names = '{}; {}'.format(mtch_compound.other_names, kegg_c['names'])
@@ -213,7 +210,7 @@ def get_kegg_info():
 
 
             else:
-                print 'CREATE'
+                print('CREATE')
                 new_comp = Compound(inchikey_id=inchikey,
                                     kegg_id=kegg_compound['kegg_cid'],
                                     other_names=kegg_compound['names'],
@@ -228,7 +225,7 @@ def get_kegg_info():
                 new_comp.save()
 
         else:
-            print 'CREATE'
+            print('CREATE')
             new_comp = Compound(inchikey_id='UNKNOWN_' + str(uuid.uuid4()),
                                 kegg_id=kegg_compound['kegg_cid'],
                                 other_names=kegg_compound['names'],
@@ -242,7 +239,7 @@ def get_kegg_info():
                                 )
             new_comp.save()
 
-            print 'NO corresponding pubchem entry for KEGG compound'
+            print('NO corresponding pubchem entry for KEGG compound')
 
         # kegg_compounds.append(kegg_compound)
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.test import TestCase
-from mbrowse.models.models import Run, MFile
+from mbrowse.models import Run, MFile
 import os
 from django.core.files import File
 

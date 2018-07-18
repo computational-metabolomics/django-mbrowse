@@ -1,3 +1,4 @@
+from __future__ import print_function
 from mbrowse.models import (
     MFile,
     SPeakMeta,
@@ -66,7 +67,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get map of filename-to-class
         ###################################
-        print 'filemap'
         if celery_obj:
             celery_obj.update_state(state='Get map of filename-to-class', meta={'current': 1, 'total': 100})
         xfi_d, mfile_d = self.save_xcms_file_info()
@@ -82,7 +82,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get scan meta info
         ###################################
-        print 'scan meta'
         if celery_obj:
             celery_obj.update_state(state='Get map scan meta info', meta={'current': 5, 'total': 100})
 
@@ -92,7 +91,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get scan peaks
         ###################################
-        print 'scan peaks'
         if celery_obj:
             celery_obj.update_state(state='Get scan peaks', meta={'current': 10, 'total': 100})
         self.save_s_peaks()
@@ -100,7 +98,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get individual peaklist
         ###################################
-        print 'cpeaks'
         if celery_obj:
             celery_obj.update_state(state='Get chromatographic peaks (indiv)', meta={'current': 15, 'total': 100})
 
@@ -109,7 +106,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get grouped peaklist
         ###################################
-        print 'c grouped peaks'
         if celery_obj:
             celery_obj.update_state(state='Get grouped peaks', meta={'current': 20, 'total': 100})
         self.save_xcms_grouped_peaks(cpgm)
@@ -117,7 +113,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Save EIC
         ###################################
-        # print 'EIC'
         if celery_obj:
             celery_obj.update_state(state='Get EICs', meta={'current': 25, 'total': 100})
         self.save_eics()
@@ -125,7 +120,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get xcms peak list link
         ###################################
-        print 'peak link'
         if celery_obj:
             celery_obj.update_state(state='Get peak links', meta={'current': 30, 'total': 100})
 
@@ -134,7 +128,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Get adduct and isotope annotations
         ###################################
-        print 'adducts'
         if celery_obj:
             celery_obj.update_state(state='Get adduct and isotopes', meta={'current': 35, 'total': 100})
 
@@ -146,7 +139,6 @@ class LcmsDataTransfer(object):
         ###################################
         # Fragmentation link
         ###################################
-        print 'fragmentation'
         if celery_obj:
             celery_obj.update_state(state='Get scan peaks to chrom peak frag links', meta={'current': 40, 'total': 100})
 
@@ -155,7 +147,6 @@ class LcmsDataTransfer(object):
         ####################################
         # spectral matching
         ####################################
-        print 'spectral matching'
         if celery_obj:
             celery_obj.update_state(state='Get spectral matching annotations', meta={'current': 45, 'total': 100})
         self.save_spectral_matching_annotations()
@@ -163,7 +154,6 @@ class LcmsDataTransfer(object):
         ####################################
         # MetFrag
         ####################################
-        print 'Metfrag'
         if celery_obj:
             celery_obj.update_state(state='Get MetFrag annotations', meta={'current': 50, 'total': 100})
         self.save_metfrag()
@@ -171,7 +161,6 @@ class LcmsDataTransfer(object):
         ####################################
         # probmetab
         ####################################
-        print 'probmetab'
         if celery_obj:
             celery_obj.update_state(state='Get probmetab annotations', meta={'current': 70, 'total': 100})
         self.save_probmetab()
@@ -179,7 +168,6 @@ class LcmsDataTransfer(object):
         ####################################
         # CSI:FingerID
         ####################################
-        print 'CSI FingerID'
         if celery_obj:
             celery_obj.update_state(state='Get CSI:FingerID annotations', meta={'current': 80, 'total': 100})
         self.save_sirius_csifingerid()
@@ -224,7 +212,6 @@ class LcmsDataTransfer(object):
         for row in self.cursor:
             idi = row[names['fileid']]
             fn = row[names['filename']]
-            print fn
 
             if xset_classes:
                 sampleType = xset_classes[os.path.splitext(fn)[0]]
@@ -255,7 +242,6 @@ class LcmsDataTransfer(object):
 
         speakmetas = []
 
-        print names
         for row in cursor:
             # this needs to be update after SQLite update in msPurity
             # to stop ram memory runnning out
@@ -318,7 +304,7 @@ class LcmsDataTransfer(object):
                 speaks = []
 
         if speaks:
-            print 'saving speak objects'
+            print('saving speak objects')
             SPeak.objects.bulk_create(speaks)
 
     def save_xcms_individual_peaks(self, xfid):
@@ -399,8 +385,6 @@ class LcmsDataTransfer(object):
         cursor.execute('SELECT * FROM  eics')
         names = sql_column_names(cursor)
 
-        print md
-        print md.pk
         eicmeta = EicMeta(metabinputdata=md)
         eicmeta.save()
 
@@ -440,9 +424,6 @@ class LcmsDataTransfer(object):
         names = sql_column_names(cursor)
 
         cpeakgrouplink = []
-
-        print md
-        print md.pk
 
         cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
         cpeaks_d = {c.idi: c.pk for c in CPeak.objects.filter(xcmsfileinfo__metabinputdata=md)}
@@ -598,7 +579,6 @@ class LcmsDataTransfer(object):
 
         speakmeta_cpeak_frag_links = []
 
-        print names
         for row in cursor:
             if len(speakmeta_cpeak_frag_links) % 1000 == 0:
                 SPeakMetaCPeakFragLink.objects.bulk_create(speakmeta_cpeak_frag_links)
@@ -661,7 +641,7 @@ class LcmsDataTransfer(object):
                 try:
                     lsm_id = library_d[row[names['accession']]]
                 except KeyError as e:
-                    print e
+                    print(e)
                     lsm_id = None
 
                 match = SpectralMatching(idi=row[names['mid']],
@@ -673,7 +653,6 @@ class LcmsDataTransfer(object):
                                          name=row[names['name']],
                                          library_spectra_meta_id=lsm_id
                                          )
-                print 'match', match
 
                 matches.append(match)
 
@@ -729,7 +708,7 @@ class LcmsDataTransfer(object):
                 continue
 
             if len(matches) % 1000 == 0:
-                print i
+                print(i)
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
 
@@ -763,21 +742,17 @@ class LcmsDataTransfer(object):
                     if not pc_matches:
                         pc_matches = get_pubchem_compound(inchikey, 'inchikey')
                         if not pc_matches:
-                            print row
-                            print pc_matches
-                            print inchikey
+                            print(row)
+                            print(pc_matches)
+                            print(inchikey)
                             continue
 
                     if len(pc_matches) > 1:
-                        print 'More than 1 match for inchi, taking the first match, should only really happen in rare cases' \
-                              'and we have not got the power to distinguish between them anyway!'
-                        print pc_matches
-                        print pc_matches[0].cid
-                        print pc_matches[0].inchikey
-                        print row
+                        print('More than 1 match for inchi, taking the first match, should only really happen in rare cases' \
+                              'and we have not got the power to distinguish between them anyway!')
+
 
                     pc_match = pc_matches[0]
-                    print 'NEW COMP', pc_match.cid, pc_match.inchikey
                     comp = create_pubchem_comp(pc_match)
                     comp.save()
 
@@ -833,7 +808,6 @@ class LcmsDataTransfer(object):
                 comp = comp_search[0]
             else:
                 kegg_compound = get_kegg_compound(kegg_id)
-                print 'ADDING TO DATABASE'
                 if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
                     inchikey = get_inchi_from_chebi(kegg_compound['chebi_id_single'])
                     if inchikey:
@@ -878,14 +852,13 @@ class LcmsDataTransfer(object):
                 if i > 50:
                     break
 
-            print i
 
             if float(row[names['Rank']]) > 6:
                 continue
 
             comps = []
             pubchem_ids = row[names['pubchemids']].split(';')
-            print pubchem_ids
+
             for pubchem_id in pubchem_ids:
                 comp_search = get_pubchem_sqlite_local(pubchem_id)
 
@@ -895,13 +868,13 @@ class LcmsDataTransfer(object):
                     pc_matches = get_pubchem_compound(pubchem_id, 'cid')
                     if pc_matches:
                         if len(pc_matches) > 1:
-                            print 'More than 1 entry for the compound id! should not happen!'
+                            print('More than 1 entry for the compound id! should not happen!')
                         pc_match = pc_matches[0]
                         comp = create_pubchem_comp(pc_match)
 
                         comps.append(comp)
                     else:
-                        print 'No matching pubchemid'
+                        print('No matching pubchemid')
 
             match = CSIFingerIDAnnotation(idi=i + 1,
                                           s_peak_meta_id=speakmeta_d[int(pid)],

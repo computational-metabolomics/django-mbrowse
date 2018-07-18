@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function
 import os
 from django import forms
 from mbrowse.models import MFile, MFileSuffix
@@ -29,7 +30,7 @@ class UploadMFilesBatchForm(forms.Form):
 
         if hasattr(settings, 'EXTERNAL_DATA_ROOTS'):
             edrs = settings.EXTERNAL_DATA_ROOTS
-            print edrs
+
             for edr_name, edr in edrs.iteritems():
 
                 if edr['filepathfield']:
@@ -48,7 +49,7 @@ class UploadMFilesBatchForm(forms.Form):
                                                           help_text='Search recursively through any sub directories '
                                                                     'of the chosen directory for metabolomics files',
                                                           required=False)
-        print 'init finished'
+
 
     def clean(self):
         cleaned_data = super(UploadMFilesBatchForm, self).clean()
@@ -80,7 +81,7 @@ class UploadMFilesBatchForm(forms.Form):
 
 
     def check_zipfile(self, data_zipfile):
-        print 'CHECK clean data zipfile'
+
 
         if not zipfile.is_zipfile(data_zipfile):
             msg = 'When using a zip file option the file needs to be a compressed zipfile'
@@ -113,7 +114,7 @@ class UploadMFilesBatchForm(forms.Form):
             else:
                 matches.extend(get_mfiles_from_dir(pth, recursive))
 
-        print 'matches', matches
+
         if not matches:
             suffixes, suffix_str = get_all_suffixes()
             msg = 'No metabolomic files available within the chosen directories' \
@@ -135,7 +136,7 @@ class MFileForm(forms.ModelForm):
 
 
     def clean_data_file(self):
-        print self.cleaned_data
+
         data_file = self.cleaned_data['data_file']
 
         prefix, suffix = os.path.splitext(os.path.basename(data_file.name))
@@ -161,7 +162,7 @@ class UploadAdductsForm(forms.Form):
 
 
     def check_adduct_rules(self, adduct_rules):
-        print 'DATA ADDUCTS', adduct_rules
+
         if not adduct_rules.name.endswith('.csv'):
             raise forms.ValidationError('Invalid file type')
 

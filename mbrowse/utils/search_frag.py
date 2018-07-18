@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv
 import os
 import tempfile
@@ -82,7 +83,7 @@ def search_frag(sp_id, celery_obj=None):
                 current = current+c
                 celery_obj.update_state(state='Spectral matching scanid {}'.format(spm.id),
                                     meta={'current': current, 'total': total_time})
-                print c
+                print(c)
                 c = 0
 
         speaks = SPeak.objects.filter(speakmeta=spm).values('mz', 'i')

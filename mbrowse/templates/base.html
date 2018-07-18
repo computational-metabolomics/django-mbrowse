@@ -1,77 +1,77 @@
-<!DOCTYPE html>
-<html lang="en">
-{% load sitetree %}
+{% extends "django_sb_admin/base.html" %}
+{% load static %}
 {% load staticfiles %}
-    <head>
-        <title class="nav-title"></title>
-        <link rel="stylesheet" href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}" />
-        <link href="http://fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Roboto+Slab" rel="stylesheet" type="text/css">
-        <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo-without-text.ico' %}" />
-        <!-- Latest compiled and minified CSS -->
-        <!--http://www.sergioscorner.com/article/making-custom-menu-django-using-django-sitetr/-->
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-    </head>
+{% block sb_admin_css %}
+    <link href="{% static "css/sb-admin.css"%}" rel="stylesheet">
+    <link href="{% static 'css/mogi.css' %}" rel="stylesheet">
 
-    <body>
-        <!--#####################################################################-->
-        <!--Header & Navigation bar                                              -->
-        <!--#####################################################################-->
-        <div class="page-header">
-            <div class="container">
-                <div class="container" id="header-img-container">
-                    <div id="header-e1">
-                        </div><div id="header-e2">
-                        </div><div id="header-e3">
-                    </div>
-                </div>
-                <nav class="navbar navbar-default">
-                    <div class="container-fluid">
-                        <div class="navbar-header">
-                            <a class="navbar-brand" href="/">HOME</a>
-                        </div>
-                        <ul class="nav navbar-nav">
-{#                            {% sitetree_menu from "dma" include "trunk" template "sitetree/menu_bootstrap3.html" %}#}
-                        </ul>
-                        <ul class="nav navbar-nav navbar-right">
-                            <li><a href="{% url 'login' %}">{{ request.user.username }}</a></li>
+{% endblock sb_admin_css %}
+
+{% block sb_admin_fonts_css %}
+    <link rel="stylesheet" href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}" />
+    <link href="http://fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Slab" rel="stylesheet" type="text/css">
+    <link href="{% static "font-awesome/css/font-awesome.min.css"%}" rel="stylesheet" type="text/css">
+{% endblock sb_admin_fonts_css %}
+
+{% block title %}{% endblock %}
+{% block sb_admin_header_url %}{% url "index" %}{% endblock sb_admin_header_url %}
+{% block sb_admin_header %}<img class="img-responsive" src="{% static 'img/logo.svg' %}" alt="" />  {% endblock sb_admin_header %}
+
+{% block sb_admin_title %}{% endblock sb_admin_title %}
+{% block sb_admin_subheading %}{% endblock sb_admin_subheading %}
+
+{% block sb_admin_navbar_right %}
+    <ul class="nav navbar-right top-nav">
+        <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-bell"></i> <b class="caret"></b></a>
+                    <ul class="dropdown-menu alert-dropdown">
+                        <li>
+                            <a href="#"> <span class="label label-default">Alert Badge</span></a>
+                        </li>
+                    </ul>
+        </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> {% if user.username %}{{ user.username }}{% else %}Anonymous{% endif %} <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
                             {% if user.is_authenticated %}
+                                <li><a href="#"><i class="fa fa-fw fa-user"></i> Profile</a></li>
+                                <li><a href="#"><i class="fa fa-fw fa-gear"></i> Settings</a></li>
+
+                                <li class="divider"></li>
                                 <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
                             {% else %}
                                 <li><a href="{% url 'register' %}"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
                                 <li><a href="{% url 'login' %}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
                             {% endif %}
-                        </ul>
-                    </div>
-                </nav>
-            </div>
-        </div>
+                    </ul>
+                </li>
+</ul>{% endblock sb_admin_navbar_right %}
 
 
-        <div class="container-fluid">
-
-            {% if messages %}
-                <!--#####################################################################-->
-                <!--print out any messages sent from django views                        -->
-                <!--#####################################################################-->
-                <ul class="messages">
-                    {% for message in messages %}
-                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
-                            {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}Important:{% endif %}
-                            {{ message }}
-                        </li>
-                    {% endfor %}
+{% block sb_admin_sidebar %}
+    <div class="collapse navbar-collapse navbar-ex1-collapse">
+                <ul class="nav navbar-nav side-nav">
+                    <li {% if nav_active == "dashboard" %}class="active"{% endif %}>
+                        <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+                    </li>
                 </ul>
-            {% endif %}
-            <!--#####################################################################-->
-            <!--display the block content of the view                                -->
-            <!--#####################################################################-->
-            {% block content %}
-            {% endblock %}
-        </div>
-    </body>
-</html>
+            </div>
+{% endblock sb_admin_sidebar %}
+
+{% block sb_admin_content %}
+     {% block content %}
+     {% endblock %}
+
+
+
+{#    <footer> <!-- Marking the footer section -->#}
+{##}
+{##}
+{#        <img class="img-responsive" src="{% static 'img/logo_small2.svg' %}" alt="MOGI" />#}
+{##}
+{#    </footer>#}
+
+{% endblock %}
+

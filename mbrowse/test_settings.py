@@ -3,7 +3,14 @@ INSTALLED_APPS = [
     'mbrowse',
     'gfiles',
 
-    'easy_thumbnails',
+    'django_tables2',
+    'django_tables2_column_shifter',
+    'django_filters',
+    'bootstrap3',
+    'django_sb_admin',
+    'dal',
+    'dal_select2',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

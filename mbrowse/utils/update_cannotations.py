@@ -1,3 +1,4 @@
+from __future__ import print_function
 from django.db.models import Avg, Max
 from mbrowse.models import (
     ProbmetabAnnotation,
@@ -38,7 +39,7 @@ class UpdateCannotations(object):
         cpgs = []
         for i, cpgq in enumerate(cpgqs):
             if i % 500 == 0:
-                print i
+                print(i)
                 bulk_update(cpgs)
                 cpgs=[]
             cpg = CPeakGroup.objects.get(pk=cpgq['id'])

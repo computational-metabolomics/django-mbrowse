@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 import tempfile
 import os
 from django.views.generic import CreateView, ListView
@@ -32,7 +32,7 @@ class LibrarySpectraSourceCreateView(LoginRequiredMixin, CreateView):
     success_url = '/misa/success'
 
     def form_valid(self, form):
-        print 'Do some stuff with the msp file'
+
         lsr = form.save(commit=False)
         msp = form.cleaned_data['msp']
 
@@ -123,7 +123,7 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
 
         # Experimental
         for k, v in values4plot.iteritems():
-            print k, str(colour[c])
+
             mzs = v['mz']
             intens = v['i']
             intens = [i/max(intens)*100 for i in intens]
@@ -162,7 +162,7 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
         lib_name = LibrarySpectraMeta.objects.get(pk=sm.library_spectra_meta_id)
 
         for i in ls:
-            print i
+
             trace = go.Scatter(x=[i.mz, i.mz],
                                    y=[0, -i.i],
                                    mode='lines+markers',

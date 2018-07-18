@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, print_function
 import zipfile
 import tempfile
 import os
@@ -22,7 +23,6 @@ from django.conf import settings
 def add_runs_mfiles_filelist(filelist, user, save_as_link, celery_obj=False):
 
     prefixes = get_all_prefixes(filelist)
-    print 'prefixes', prefixes
 
     if celery_obj:
         celery_obj.update_state(state='Adding runs to database',
@@ -53,7 +53,6 @@ def get_all_prefixes(namelist):
     return {get_prefix(name):'' for name in namelist}
 
 def get_prefix(name):
-    print 'get prefix name', name
     shrt_name = os.path.basename(name)
     prefix, suffix = os.path.splitext(shrt_name)
     return prefix
@@ -61,7 +60,7 @@ def get_prefix(name):
 def add_runs(prefixes):
     runs = {}
     for p in prefixes.keys():
-        print 'PREFIX', p
+        print('PREFIX', p)
         r = Run(prefix=p)
         r.save()
         runs[p] = r
@@ -70,7 +69,6 @@ def add_runs(prefixes):
 def add_mfiles_comp(namelist, comp, runs, user):
     mfiles = []
     for n in namelist:
-        print n
         prefix = get_prefix(n)
         # note that this approach requires extracting the zipped file to a temp location,
         # we then copy it over when we save the MFile object
@@ -99,7 +97,6 @@ def add_mfiles(namelist, runs, user, save_as_link=False, celery_obj=False):
 
 
     for n in namelist:
-        print 'file for mfile', n
         if celery_obj:
             bname = os.path.basename(n)[:45]  # limited number of characters for status SQL column
             celery_obj.update_state(state='File {}'.format(bname),
@@ -136,7 +133,6 @@ def get_mfile_suffix(suffix):
 
 def get_mfiles_from_dir(dir_pth, recursive):
     matches = []
-    print 'DIR PATH', dir_pth
     if not dir_pth:
         return matches
 

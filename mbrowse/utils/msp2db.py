@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals, print_function
 import datetime
 import sqlite3
 import argparse
@@ -9,11 +9,24 @@ import collections
 import os
 import pubchempy as pcp
 import uuid
-import urllib2
-from httplib import BadStatusLine
+try:
+    # For Python 3.0 and later
+    from urllib.request import URLError
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import URLError
+
+try:
+    # For Python 3.0 and later
+    from http.client import BadStatusLine
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from httplib import BadStatusLine
+
+
 
 def create_db(file_pth=None, db_type='sqlite', db_name=None, user='', password='', old_schema=False):
-    print "CREATE DB"
+    print("CREATE DB")
     if db_type == 'sqlite':
         conn = sqlite3.connect(file_pth)
         c = conn.cursor()
@@ -235,7 +248,7 @@ def get_blank_compound_info():
 
 def get_connection(db_type, db_pth, user, password, name):
     if db_type == 'sqlite':
-        print db_pth
+        print(db_pth)
         conn = sqlite3.connect(db_pth)
     elif db_type == 'mysql':
         import mysql.connector
@@ -255,7 +268,7 @@ def removekey(d, key):
 class LibraryData(object):
     def __init__(self, msp_pth, name, source, mslevel=0, db_pth=None, db_type='sqlite', d_form=False, password='', user='', chunk=0, old_schema=False, celery_obj=False):
         conn = get_connection(db_type, db_pth, user, password, name)
-        print 'Starting library data parsing'
+        print('Starting library data parsing')
         self.c = conn.cursor()
         self.conn = conn
 
@@ -277,9 +290,6 @@ class LibraryData(object):
         self.mslevel = mslevel
         self.other_names = []
 
-
-
-        # print "PARSE DATA"
 
         if d_form:
             self.num_lines = sum(1 for line in msp_pth)
@@ -315,7 +325,7 @@ class LibraryData(object):
             if c >= chunk:
                 if celery_obj:
                     celery_obj.update_state(state='current spectra {}'.format(str(i)), meta={'current': i, 'total': self.num_lines})
-                print self.current_id_meta
+                print(self.current_id_meta)
 
                 self.insert_data(update_source=update_source, remove_data=True, db_type=db_type)
                 update_source = False
@@ -422,9 +432,9 @@ class LibraryData(object):
                     self.set_inchi_pcc(self.compound_info['name'], 'name', 0)
 
                 if not self.compound_info['inchikey_id']:
-                    print 'WARNING, cant get inchi key for ', self.compound_info
-                    print self.meta_info
-                    print '#########################'
+                    print('WARNING, cant get inchi key for ', self.compound_info)
+                    print(self.meta_info)
+                    print('#########################')
                     self.compound_info['inchikey_id'] = 'UNKNOWN_' + str(uuid.uuid4())
 
                 if not self.compound_info['pubchem_id'] and self.compound_info['inchikey_id']:
@@ -488,16 +498,16 @@ class LibraryData(object):
         try:
             pccs = pcp.get_compounds(in_str, pcp_type)
         except pcp.BadRequestError as e:
-            print e
+            print(e)
             return 0
         except pcp.TimeoutError as e:
-            print e
+            print(e)
             return 0
         except urllib2.URLError as e:
-            print e
+            print(e)
             return 0
         except BadStatusLine as e:
-            print e
+            print(e)
             return 0
 
 
@@ -512,7 +522,7 @@ class LibraryData(object):
             self.compound_info['smiles'] = pcc.canonical_smiles
 
             if len(pccs) > 1:
-                print 'WARNING, multiple compounds for ', self.compound_info
+                print('WARNING, multiple compounds for ', self.compound_info)
 
     def get_other_names(self, line):
         m = re.search('^Synonym(?:=|:)(.*)$', line, re.IGNORECASE)
@@ -607,7 +617,7 @@ def insert_query_m(data, table, conn, columns=None, db_type='mysql'):
             stmt = "INSERT INTO " + table + "( " + columns + ") VALUES (" + type + ")"
         else:
             stmt = "INSERT INTO " + table + " VALUES (" + type + ")"
-        print stmt
+        print(stmt)
 
         cursor = conn.cursor()
         cursor.executemany(stmt, data)
@@ -643,7 +653,7 @@ def get_precursor_mz(exact_mass, precursor_type):
 
         return exact_mass + d[precursor_type]
     except KeyError as e:
-        print e
+        print(e)
         return False
 
 
@@ -687,7 +697,7 @@ def main():
     else:
         d_form = False
 
-    print db_pth, args.dt
+    print(db_pth, args.dt)
 
     if not args.mslevel:
         args.mslevel = 0

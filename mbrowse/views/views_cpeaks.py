@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 import collections
 import numpy as np
 import seaborn as sns
@@ -148,7 +148,7 @@ class Frag4FeatureListView(LoginRequiredMixin, SingleTableMixin, ListView):
 
 
         for k, v in values4plot.iteritems():
-            print k, str(colour[c])
+
             mzs = v['mz']
             intens = v['i']
             intens = [i/max(intens)*100 for i in intens]

@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 import os
 from django.db import models
 from gfiles.models import GenericFile
-from models_general import MFile, MetabInputData, AdductRule
-from models_speaks import SPeakMeta
+from .models_general import MFile, MetabInputData, AdductRule
+from .models_speaks import SPeakMeta
 
 ################################################################################################################
 # Chromatography (LC-MS, GC-MS) peak organisation (cpeak)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv
 import os
 import tempfile
@@ -9,7 +10,7 @@ from mbrowse.models import SearchNmParam, SearchMzParam, SearchMzResult, SearchN
 
 
 def search_mz(smp_id, celery_obj):
-    print 'CHECK CHECK', smp_id
+
     smp = SearchMzParam.objects.get(id=smp_id)
     # if smp.mass_type=='mz':
     # loop through masses
@@ -22,7 +23,7 @@ def search_mz(smp_id, celery_obj):
     ms_levels = [i['id'] for i in list(smp.ms_level.all().values('id'))]
     ppm_target_tolerance = smp.ppm_target_tolerance
     ppm_library_tolerance = smp.ppm_library_tolerance
-    print masses, ppm_library_tolerance, ppm_library_tolerance
+
     dirpth = tempfile.mkdtemp()
     first = True
     sr = SearchMzResult()
@@ -40,7 +41,7 @@ def search_mz(smp_id, celery_obj):
 
         fnm = 'single_mz_search_result_chrom.csv'
         tmp_pth = os.path.join(dirpth, fnm)
-        print tmp_pth
+
         with open(tmp_pth, 'wb') as csvfile:
             writer = csv.writer(csvfile)
             for m in masses:
@@ -63,7 +64,7 @@ def search_mz(smp_id, celery_obj):
         first = True
         fnm = 'single_mz_search_result_frag.csv'
         tmp_pth = os.path.join(dirpth, fnm)
-        print tmp_pth
+
 
         with open(tmp_pth, 'wb') as csvfile:
             writer = csv.writer(csvfile)
@@ -106,7 +107,7 @@ def search_nm(snp_id, celery_obj):
     sr.searchnmparam = snp
     fnm = 'single_nm_search_result_chrom.csv'
     tmp_pth = os.path.join(dirpth, fnm)
-    print tmp_pth
+
     c = 0
     hc = 0
     with open(tmp_pth, 'wb') as csvfile:
@@ -132,7 +133,7 @@ def search_nm(snp_id, celery_obj):
 
 
 def search_mz_chrom(target_mass, ppm_target_tolerance, ppm_library_tolerance, polarities, writer=None, first=False):
-    print target_mass, ppm_target_tolerance, ppm_library_tolerance, polarities
+
     target_low = target_mass - ((target_mass * 0.000001) * ppm_target_tolerance)
     target_high = target_mass + ((target_mass * 0.000001) * ppm_target_tolerance)
 
@@ -206,7 +207,7 @@ def search_mz_chrom(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
 
 def search_mz_scans(target_mass, ppm_target_tolerance, ppm_library_tolerance, polarities, ms_levels, writer=None, first=False):
-    print target_mass, ppm_target_tolerance, ppm_library_tolerance, polarities
+
     target_low = target_mass - ((target_mass * 0.000001) * ppm_target_tolerance)
     target_high = target_mass + ((target_mass * 0.000001) * ppm_target_tolerance)
 
@@ -291,7 +292,7 @@ def search_mz_scans(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
 
 def write_out(query, cursor, first, writer, target_mass, target_low, target_high):
-    print query
+
     cursor.execute(query)
     columns = [i[0] for i in cursor.description]
     columns.extend(['target_mz', 'target_low', 'target_high'])
@@ -307,7 +308,7 @@ def write_out(query, cursor, first, writer, target_mass, target_low, target_high
 
 
 def search_nm_chrom(target_mass, ppm_target_tolerance, ppm_library_tolerance, polarities, writer=None, first=False):
-    print target_mass, ppm_target_tolerance, polarities
+
     target_low = target_mass - ((target_mass * 0.000001) * ppm_target_tolerance)
     target_high = target_mass + ((target_mass * 0.000001) * ppm_target_tolerance)
 

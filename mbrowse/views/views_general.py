@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 from django.views.generic import CreateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
@@ -55,7 +55,7 @@ class UploadMFilesBatch(LoginRequiredMixin, View):
 
 
     def get(self, request, *args, **kwargs):
-        print 'uploadmfilesbatch'
+
         form = UploadMFilesBatchForm(user=request.user)
         return render(request, self.template_name, {'form': form})
 
@@ -77,7 +77,7 @@ class UploadMFilesBatch(LoginRequiredMixin, View):
                 return render(request, 'gfiles/status.html', {'s': 0, 'progress': 0})
 
         else:
-            print form.errors
+            print(form.errors)
 
         return render(request, self.template_name, {'form': form})
 
@@ -114,19 +114,19 @@ class UploadAdductRules(LoginRequiredMixin, View):
     template_name = 'mbrowse/upload_adduct_rules.html'
 
     def get(self, request, *args, **kwargs):
-        print 'uploadadduct rules'
+
         form = UploadAdductsForm()
         return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):
         form = UploadAdductsForm(request.POST, request.FILES)
-        print form
+
         if form.is_valid():
             adduct_rules = form.cleaned_data['adduct_rules']
             upload_adduct_rules(adduct_rules)
             return render(request, 'dma/success.html')
         else:
-            print form.errors
+            print(form.errors)
 
         return render(request, self.template_name, {'form': form})
 
