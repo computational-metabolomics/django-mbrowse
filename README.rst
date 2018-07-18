@@ -19,16 +19,18 @@ Quick start
         'gfiles',
 
         'django_tables2',
-        'bootstrap3',
         'django_tables2_column_shifter',
+        'django_filters',
+        'bootstrap3',
         'django_sb_admin',
-        'django_filter'
+        'dal',
+        'dal_select2',
     ]
 
 2. Include the polls URLconf in your project urls.py like this::
 
     url(r'^', include('gfiles.urls')),
-    path('mbrowse/', include('mbrowse.urls')),
+    url('mbrowse/', include('mbrowse.urls')),
 
 3. Run `python manage.py migrate` to create the mbrowse models.
 
