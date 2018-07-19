@@ -1,3 +1,4 @@
+import os
 SECRET_KEY = 'fake-key'
 INSTALLED_APPS = [
     'mbrowse',
@@ -34,9 +35,51 @@ MIDDLEWARE_CLASSES = [
 
 ]
 
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'test-django-mogi',
+        'NAME': 'test-django-galaxy',
     }
 }
+
+
+
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), ".."),
+)
+
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+
+STATIC_URL = '/static/'
+
+ROOT_URLCONF = 'test_site_urls'
+
+LOGIN_REDIRECT_URL = 'index'
+LOGIN_URL = '/login/'
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [(os.path.join(BASE_DIR, 'templates')),
+                 ],
+
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages'
+            ],
+        },
+    },
+]
