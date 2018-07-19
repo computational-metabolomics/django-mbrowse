@@ -3,6 +3,7 @@ django==1.11
 django-rest-framework
 django-gfiles
 django-autocomplete-light
+django-bulk-update
 
 pubchempy
 numpy
