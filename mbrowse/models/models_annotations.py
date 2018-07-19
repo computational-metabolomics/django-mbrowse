@@ -1,4 +1,5 @@
-from __future__ import unicode_literals
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, print_function
 import os
 import datetime
 from django.db import models
