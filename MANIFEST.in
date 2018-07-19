@@ -1,5 +1,7 @@
 include LICENSE
 include README.rst
+include requirements.txt
 recursive-include mbrowse/static *
 recursive-include mbrowse/templates *
-recursive-include docs *
+recursive-include mbrowse/tests/data *
+recursive-include mbrowse/tests *
