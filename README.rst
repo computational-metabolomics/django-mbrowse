@@ -6,7 +6,7 @@ mbrowse
 
 Browse, view and search metabolomic datasets
 
-Detailed documentation is in the "docs" directory (todo)
+Further documentation available on `ReadTheDocs <https://mogi.readthedocs.io/en/latest/>`__
 
 Quick start
 -----------

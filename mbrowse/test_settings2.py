@@ -1,5 +1,6 @@
 SECRET_KEY = 'fake-key'
 INSTALLED_APPS = [
+    'misa',
     'mbrowse',
     'galaxy',
     'gfiles',
