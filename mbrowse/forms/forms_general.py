@@ -6,7 +6,7 @@ from mbrowse.utils.mfile_upload import get_all_suffixes, get_file_namelist, get_
 import zipfile
 from django.conf import settings
 import csv
-
+import six
 
 class UploadMFilesBatchForm(forms.Form):
     data_zipfile = forms.FileField(label='Zipped collection of data files',
@@ -31,7 +31,7 @@ class UploadMFilesBatchForm(forms.Form):
         if hasattr(settings, 'EXTERNAL_DATA_ROOTS'):
             edrs = settings.EXTERNAL_DATA_ROOTS
 
-            for edr_name, edr in edrs.iteritems():
+            for edr_name, edr in six.iteritems(edrs):
 
                 if edr['filepathfield']:
                     if edr['user_dirs']:

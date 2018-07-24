@@ -9,6 +9,8 @@ import collections
 import os
 import pubchempy as pcp
 import uuid
+import six
+
 try:
     # For Python 3.0 and later
     from urllib.request import URLError
@@ -531,7 +533,7 @@ class LibraryData(object):
 
     def parse_meta_info(self, line):
 
-        for k, regexes in self.meta_regex.iteritems():
+        for k, regexes in six.iteritems(self.meta_regex):
             for reg in regexes:
                 m = re.search(reg, line, re.IGNORECASE)
                 if m:
@@ -539,7 +541,7 @@ class LibraryData(object):
 
     def parse_compound_info(self, line):
 
-        for k, regexes in self.compound_regex.iteritems():
+        for k, regexes in six.iteritems(self.compound_regex):
             for reg in regexes:
                 m = re.search(reg, line, re.IGNORECASE)
                 if m:

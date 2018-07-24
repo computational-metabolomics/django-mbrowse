@@ -36,6 +36,7 @@ import uuid
 from django.conf import settings
 import re
 import os
+import six
 
 TEST_MODE = False
 
@@ -85,7 +86,7 @@ class LcmsDataTransfer(object):
         if celery_obj:
             celery_obj.update_state(state='Get map scan meta info', meta={'current': 5, 'total': 100})
 
-        runs = {k: v.run for k, v in mfile_d.iteritems()}
+        runs = {k: v.run for k, v in six.iteritems(mfile_d)}
         self.save_s_peak_meta(runs)
 
         ###################################
