@@ -7,6 +7,7 @@ from mbrowse.models import (
     Eic,
     SPeak,
     CAnnotation,
+    CAnnotationDownloadResult,
     SpectralMatching,
     SearchMzResult,
     SearchNmResult,
@@ -193,6 +194,18 @@ class SearchFragResultTable(ColumnShiftTable):
 
         model = SearchFragResult
 
+        # add class="paleblue" to <table> tag
+
+        attrs = {"class": "paleblue", }
+
+
+class CAnnotationDownloadResultTable(ColumnShiftTable):
+    username = tables.Column(accessor='cannotationdownload.user.username', verbose_name='Username')
+
+    class Meta:
+
+        model = CAnnotationDownloadResult
+        fields = ('id', 'annotation_file', 'created', 'username')
         # add class="paleblue" to <table> tag
 
         attrs = {"class": "paleblue", }

@@ -70,7 +70,8 @@ def check_table_exists_sqlite(cursor, tablename):
     #https://stackoverflow.com/questions/17044259/python-how-to-check-if-table-exists
     try:
         qry =cursor.execute("SELECT NULL FROM {} LIMIT 1".format(tablename))
-    except (OperationalError, e):
+    except OperationalError as e:
         return False
 
     return True
+

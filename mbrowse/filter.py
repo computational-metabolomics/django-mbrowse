@@ -1,7 +1,7 @@
 from mbrowse.models import MFile
 from gfiles.filter import GFileFilter
-from mbrowse.models import CPeakGroup
-from mbrowse.models import CAnnotation
+from mbrowse.models import CPeakGroup, CAnnotation, CAnnotationDownloadResult
+
 import django_filters
 
 class MFileFilter(GFileFilter):
@@ -37,16 +37,25 @@ class CAnnotationFilter(django_filters.FilterSet):
 
     def __init__(self, *args, **kwargs):
         super(CAnnotationFilter, self).__init__(*args, **kwargs)
-        self.filters['cpeakgroup__mzmed'].label = 'mzmed'
-        self.filters['cpeakgroup__rtmed'].label = 'rtmed'
+        # self.filters['cpeakgroup_mzmed'].label = 'mzmed'
+        # self.filters['cpeakgroup_rtmed'].label = 'rtmed'
 
 
     class Meta:
         model = CAnnotation
         fields = {
-            'cpeakgroup__mzmed': ['gt', 'lt'],
-            'cpeakgroup__rtmed': ['gt', 'lt'],
+            # 'cpeakgroup__mzmed': ['gt', 'lt'],
+            # 'cpeakgroup__rtmed': ['gt', 'lt'],
             'compound__name': ['contains'],
             # 'msms_count': ['range'],
             # 'accessible': ['isnull']
+        }
+
+
+class CAnnotationDownloadResultFilter(django_filters.FilterSet):
+    # many to many assay
+    class Meta:
+        model = CAnnotationDownloadResult
+        fields = {
+            'created': ['contains'],
         }

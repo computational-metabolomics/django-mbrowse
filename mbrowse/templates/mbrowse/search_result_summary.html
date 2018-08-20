@@ -2,7 +2,10 @@
 {% load static %}
 {% block sb_admin_title %} Search Result Summary {% endblock sb_admin_title %}
 {% block sb_admin_subheading %}  {% endblock sb_admin_subheading %}
-{% block sb_admin_breadcrumb %} <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a> {% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"> MBrowse Summary</a>
+{% endblock sb_admin_breadcrumb %}
 {% block sb_admin_breadcrumb_active %} / Search Result Summary {% endblock sb_admin_breadcrumb_active %}
 
 {% block content %}

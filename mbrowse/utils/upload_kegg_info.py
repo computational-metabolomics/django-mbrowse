@@ -25,15 +25,13 @@ def get_pubchem_compound(in_str, type='inchikey'):
 
 
 def get_inchi_from_chebi(chebi_id):
-    # pubchem stores the SID not the CID!!!! means we can't use it like this
+
     if not chebi_id:
         return 0
 
     chebi_con = ChEBI()
 
     chebi_entry = chebi_con.getCompleteEntity(chebi_id)
-
-
 
     if 'inchikey' in chebi_entry:
         print('FOUND INCHI KEY', chebi_entry.inchikey)
@@ -46,10 +44,14 @@ def get_inchi_from_chebi(chebi_id):
 
 
 def get_kegg_compound(cid):
+
     kegg_compound = {'chebi_id':None, 'lbdb_id':None, 'lmdb_id':None, 'pubchem_id':None, 'brite':None}
     url_get = 'http://rest.kegg.jp/get/{}'.format(cid)
     resp = requests.get(url_get)
     all_cont = resp.content
+
+    if type(all_cont) == bytes:
+        all_cont = all_cont.decode("utf-8")
     all_cont_rows = all_cont.split('\n')
 
     chebi_count = 0
@@ -127,13 +129,8 @@ def get_kegg_info():
 
 
         entry = row.split('\t')
-        print(entry)
+
         cid = entry[0].split(':')[1]
-
-
-
-
-
 
         names = entry[1]
         name = entry[1].split(';')[0]
@@ -142,7 +139,7 @@ def get_kegg_info():
         kegg_compound['names'] = names
 
 
-        if comps_all.filter(kegg_id__regex='(^|,){}(,|$)'.format(cid)):
+        if comps_all.filter(kegg_id__regex='(^|.*,|")({})("|,.*|$)'.format(cid)):
             continue
 
         if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:

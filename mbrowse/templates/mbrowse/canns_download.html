@@ -1,0 +1,17 @@
+{% extends 'gfiles/simple_form.html' %}
+{% load static %}
+{% block sb_admin_title %}
+{% if assay  %}
+    Update an Assay
+        {% else %}
+    Create a New Assay
+{% endif %}
+{% endblock sb_admin_title %}
+{% block sb_admin_subheading %} <small></small> {% endblock sb_admin_subheading %}
+{% block sb_admin_breadcrumb %}
+    <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+    / <a href="{% url "general_summary" %}"></i> Mbrowse Summary </a>
+    / <a href="{% url "cpeakgroupmeta_summary" %}"> LC-MS(/MS) Annotation Summary</a>
+{% endblock sb_admin_breadcrumb %}
+{% block sb_admin_breadcrumb_active %} / Download LC-MS(/MS) Annotation data {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %}{% endblock panel_title %}

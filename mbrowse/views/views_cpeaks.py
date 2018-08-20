@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 import plotly.offline as opy
 import plotly.graph_objs as go
+import six
 
 from django.views.generic import CreateView, ListView
 from django.shortcuts import render
@@ -12,10 +13,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django_filters.views import FilterView
 from django_tables2.views import SingleTableMixin
 
-from mbrowse.models import MetabInputData, MFile, CPeakGroup, CPeakGroupMeta, Eic, SPeak, CAnnotation
-from mbrowse.tables import CPeakGroupTable, CPeakGroupMetaTable, EicTable, SPeakTable, CAnnotationTable
-from mbrowse.filter import CPeakGroupFilter, CAnnotationFilter
+
+from mbrowse.models import MetabInputData, CPeakGroup, CPeakGroupMeta, Eic, SPeak
+from mbrowse.tables import CPeakGroupTable, CPeakGroupMetaTable, EicTable, SPeakTable
+from mbrowse.filter import CPeakGroupFilter
 from mbrowse.tasks import save_lcms_data_task
+
 
 #################################################################################
 # LC-MS stuff
@@ -28,7 +31,6 @@ class UploadLCMSDataset(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         obj = form.save()
-
 
         result = save_lcms_data_task.delay(obj.pk)
         self.request.session['result'] = result.id
@@ -55,38 +57,6 @@ class CPeakGroupListView(LoginRequiredMixin, SingleTableMixin, FilterView):
 
         return CPeakGroup.objects.filter(cpeakgroupmeta_id= self.kwargs.get('cid'))
 
-
-class CAnnotationsListView(LoginRequiredMixin, SingleTableMixin, FilterView):
-    '''
-    '''
-    table_class = CAnnotationTable
-    model = CAnnotation
-    template_name = 'mbrowse/cpeakgroup_annotations.html'
-    filterset_class = CAnnotationFilter
-
-    def get_queryset(self):
-        return self.model.objects.filter(cpeakgroup_id= self.kwargs.get('cgid')).order_by('-weighted_score')
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(CAnnotationsListView, self).get_context_data(**kwargs)
-        # Add in a QuerySet of all the books
-        context['cgid'] = self.kwargs.get('cgid')
-        context['cpgm_id'] = CPeakGroupMeta.objects.get(cpeakgroup__id=self.kwargs.get('cgid')).id
-        return context
-
-
-
-class CAnnotationsListAllView(LoginRequiredMixin, SingleTableMixin, FilterView):
-    '''
-    '''
-    table_class = CAnnotationTable
-    model = CAnnotation
-    template_name = 'mbrowse/cpeakgroup_annotations_all.html'
-    filterset_class = CAnnotationFilter
-
-    def get_queryset(self):
-        return self.model.objects.all().order_by('-weighted_score')
 
 
 
@@ -147,7 +117,7 @@ class Frag4FeatureListView(LoginRequiredMixin, SingleTableMixin, ListView):
         data = []
 
 
-        for k, v in values4plot.iteritems():
+        for k, v in six.iteritems(values4plot):
 
             mzs = v['mz']
             intens = v['i']
@@ -161,7 +131,7 @@ class Frag4FeatureListView(LoginRequiredMixin, SingleTableMixin, ListView):
                     showLegend = True
                 else:
                     showLegend = False
-                name = '{f} {s} {p}'.format(f=filename[i], s=scan_num[i], p=peakclass[i])
+                name = '{f} {s}'.format(f=filename[i], s=scan_num[i])
 
                 trace = go.Scatter(x=[mzs[i], mzs[i]],
                                 y=[0, intens[i]],
@@ -240,7 +210,7 @@ class EicListView(LoginRequiredMixin, SingleTableMixin, ListView):
         colour = current_palette.as_hex()
 
         data = []
-        for k, v in values4plot.iteritems():
+        for k, v in six.iteritems(values4plot):
             trace = go.Scatter(
                 x=v['rt'],
                 y=v['intensity'],

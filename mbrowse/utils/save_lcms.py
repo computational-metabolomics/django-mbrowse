@@ -1,6 +1,8 @@
 from __future__ import print_function
 from mbrowse.models import (
     MFile,
+    MFileSuffix,
+    Run,
     SPeakMeta,
     SPeak,
     XCMSFileInfo,
@@ -24,6 +26,7 @@ from mbrowse.models import (
     CSIFingerIDAnnotation,
     CSIFingerIDMeta
 )
+from bulk_update.helper import bulk_update
 from django.db.models import Count, Avg, F, Max
 import sqlite3
 import numpy as np
@@ -37,11 +40,15 @@ from django.conf import settings
 import re
 import os
 import six
-
+try:
+    xrange
+except NameError:  # python3
+    xrange = range
 TEST_MODE = False
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
+        self.cpgm = ''
         if mfile_ids:
             self.mfiles = MFile.objects.filter(pk__in=mfile_ids)
         else:
@@ -62,14 +69,16 @@ class LcmsDataTransfer(object):
 
         cpgm = CPeakGroupMeta(metabinputdata=self.md)
         cpgm.save()
-        return cpgm
+
+        self.cpgm = cpgm
 
     def transfer(self, celery_obj=None):
         ###################################
         # Get map of filename-to-class
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get map of filename-to-class', meta={'current': 1, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 1, 'total': 100, 'status': 'Get map of filename-to-class'})
         xfi_d, mfile_d = self.save_xcms_file_info()
         self.mfile_d = mfile_d
 
@@ -78,29 +87,34 @@ class LcmsDataTransfer(object):
         ###################################
         # the cpeakgroupmet can be update to use an extended cpeakgroupmeta class which contains more infor
         # e.g. Investigation and assay details
-        cpgm = self.set_cpeakgroupmeta()
+        self.set_cpeakgroupmeta()
+
 
         ###################################
         # Get scan meta info
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get map scan meta info', meta={'current': 5, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 5, 'total': 100, 'status': 'Get map scan meta info'})
 
         runs = {k: v.run for k, v in six.iteritems(mfile_d)}
-        self.save_s_peak_meta(runs)
+        self.save_s_peak_meta(runs, celery_obj)
 
         ###################################
         # Get scan peaks
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get scan peaks', meta={'current': 10, 'total': 100})
-        self.save_s_peaks()
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 10, 'total': 100, 'status': 'Get scan peaks'})
+
+        self.save_s_peaks(celery_obj)
 
         ###################################
         # Get individual peaklist
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get chromatographic peaks (indiv)', meta={'current': 15, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 15, 'total': 100, 'status': 'Get chromatographic peaks (indiv)'})
 
         self.save_xcms_individual_peaks(xfi_d)
 
@@ -108,21 +122,26 @@ class LcmsDataTransfer(object):
         # Get grouped peaklist
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get grouped peaks', meta={'current': 20, 'total': 100})
-        self.save_xcms_grouped_peaks(cpgm)
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 20, 'total': 100, 'status': 'Get grouped peaks'})
+
+        self.save_xcms_grouped_peaks()
 
         ###################################
         # Save EIC
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get EICs', meta={'current': 25, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 25, 'total': 100, 'status': 'Get EICs'})
+
         self.save_eics()
 
         ###################################
         # Get xcms peak list link
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get peak links', meta={'current': 30, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 30, 'total': 100, 'status': 'Get peak links'})
 
         self.save_xcms_group_peak_link()
 
@@ -130,7 +149,8 @@ class LcmsDataTransfer(object):
         # Get adduct and isotope annotations
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get adduct and isotopes', meta={'current': 35, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 35, 'total': 100, 'status': 'Get adduct and isotopes'})
 
         ruleset_d = self.save_adduct_rules()
         self.save_neutral_masses()
@@ -141,49 +161,65 @@ class LcmsDataTransfer(object):
         # Fragmentation link
         ###################################
         if celery_obj:
-            celery_obj.update_state(state='Get scan peaks to chrom peak frag links', meta={'current': 40, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 40, 'total': 100,
+                                          'status': 'Get scan peaks to chrom peak frag links'})
 
-        self.save_spekmeta_cpeak_frag_link()
+        self.save_speakmeta_cpeak_frag_link()
 
         ####################################
         # spectral matching
         ####################################
         if celery_obj:
-            celery_obj.update_state(state='Get spectral matching annotations', meta={'current': 45, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 45, 'total': 100,
+                                          'status': 'Get spectral matching annotations'})
         self.save_spectral_matching_annotations()
 
         ####################################
         # MetFrag
         ####################################
         if celery_obj:
-            celery_obj.update_state(state='Get MetFrag annotations', meta={'current': 50, 'total': 100})
-        self.save_metfrag()
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 50, 'total': 100,
+                                          'status': 'Get MetFrag annotations'})
+        self.save_metfrag(celery_obj)
 
         ####################################
         # probmetab
         ####################################
         if celery_obj:
-            celery_obj.update_state(state='Get probmetab annotations', meta={'current': 70, 'total': 100})
-        self.save_probmetab()
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 70, 'total': 100,
+                                          'status': 'Get probmetab annotations'})
+
+        self.save_probmetab(celery_obj)
 
         ####################################
         # CSI:FingerID
         ####################################
         if celery_obj:
-            celery_obj.update_state(state='Get CSI:FingerID annotations', meta={'current': 80, 'total': 100})
-        self.save_sirius_csifingerid()
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 80, 'total': 100,
+                                          'status': 'Get CSI:FingerID annotations'})
+        self.save_sirius_csifingerid(celery_obj)
 
         ####################################
         # Update cpeak group annotation summary
         ####################################
-        cpgm = self.cpeakgroupmeta_class.objects.get(metabinputdata=self.md)
-        if celery_obj:
-            celery_obj.update_state(state='Update cpeak group annotation summary', meta={'current': 90, 'total': 100})
 
-        uc = UpdateCannotations(cpgm=cpgm)
-        uc.update_cannotations()
         if celery_obj:
-            celery_obj.update_state(state='SUCCESS', meta={'current': 100, 'total': 100})
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 90, 'total': 100,
+                                          'status': 'Update cpeak group annotation summary'})
+
+        uc = UpdateCannotations(cpgm=self.cpgm)
+        uc.update_cannotations(celery_obj=celery_obj, current=95)
+        if celery_obj:
+            if celery_obj:
+                celery_obj.update_state(state='SUCCESS',
+                                        meta={'current': 100, 'total': 100,
+                                              'status': 'Uploaded LC-MSMS dataset'})
 
 
     def save_xcms_file_info(self):
@@ -220,12 +256,21 @@ class LcmsDataTransfer(object):
                 # old database schema has this stored in the same table
                 sampleType = row[names['sampleclass']]
 
-            mfile = mfiles.filter(original_filename=fn)[0]  # if multiple with this name for this investigation (which
-            # there should not be), we just take the first file
-            if mfile:
-                xfi = XCMSFileInfo(idi=idi, filename=fn, classname=sampleType, mfile=mfile, metabinputdata=md)
+            mfile_qs = mfiles.filter(original_filename=fn)
+
+            if mfile_qs:
+                mfile = mfile_qs[0]
             else:
-                xfi = XCMSFileInfo(idi=idi, filename=fn, classname=sampleType, metabinputdata=md)
+                # add the file with the most basic of information
+                prefix, suffix = os.path.splitext(fn)
+                run = Run(prefix=prefix)
+                run.save()
+
+                mfile = MFile(original_filename=fn, run=run, mfilesuffix=MFileSuffix.objects.filter(suffix=suffix)[0])
+                mfile.save()
+
+            xfi = XCMSFileInfo(idi=idi, filename=fn, classname=sampleType, mfile=mfile, metabinputdata=md)
+
             xfi.save()
             xfi_d[idi] = xfi
             mfile_d[idi] = mfile
@@ -234,7 +279,7 @@ class LcmsDataTransfer(object):
 
 
 
-    def save_s_peak_meta(self, runs):
+    def save_s_peak_meta(self, runs, celery_obj):
         md = self.md
         cursor = self.cursor
 
@@ -246,7 +291,13 @@ class LcmsDataTransfer(object):
         for row in cursor:
             # this needs to be update after SQLite update in msPurity
             # to stop ram memory runnning out
-            if len(speakmetas) % 1000 == 0:
+            if len(speakmetas) % 500 == 0:
+                if celery_obj:
+                    celery_obj.update_state(state='RUNNING',
+                                            meta={'current': 10, 'total': 100,
+                                                  'status': 'Upload scan peak {}'.format(len(speakmetas))
+                                                  }
+                                            )
                 SPeakMeta.objects.bulk_create(speakmetas)
                 speakmetas = []
 
@@ -275,7 +326,7 @@ class LcmsDataTransfer(object):
 
         SPeakMeta.objects.bulk_create(speakmetas)
 
-    def save_s_peaks(self):
+    def save_s_peaks(self, celery_obj):
         md = self.md
         cursor = self.cursor
 
@@ -302,6 +353,10 @@ class LcmsDataTransfer(object):
             # to stop ram memory runnning out
             if len(speaks) > 1000:
                 SPeak.objects.bulk_create(speaks)
+                if celery_obj:
+                    celery_obj.update_state(state='RUNNING',
+                                            meta={'current': 10, 'total': 100,
+                                                  'status': 'Scan peaks upload, {}'.format(len(speaks))})
                 speaks = []
 
         if speaks:
@@ -317,7 +372,7 @@ class LcmsDataTransfer(object):
 
         for row in cursor:
 
-            if len(cpeaks) % 1000 == 0:
+            if len(cpeaks) % 500 == 0:
                 CPeak.objects.bulk_create(cpeaks)
                 cpeaks = []
 
@@ -341,7 +396,7 @@ class LcmsDataTransfer(object):
         CPeak.objects.bulk_create(cpeaks)
 
 
-    def save_xcms_grouped_peaks(self, cpgm):
+    def save_xcms_grouped_peaks(self):
         md = self.md
         cursor = self.cursor
 
@@ -353,7 +408,7 @@ class LcmsDataTransfer(object):
 
         for row in cursor:
 
-            if len(cpeakgroups) % 1000 == 0:
+            if len(cpeakgroups) % 500 == 0:
                 CPeakGroup.objects.bulk_create(cpeakgroups)
                 cpeakgroups = []
 
@@ -365,7 +420,7 @@ class LcmsDataTransfer(object):
                                         rtmin=row[names['rtmin']],
                                         rtmax=row[names['rtmax']],
                                         npeaks=row[names['npeaks']],
-                                        cpeakgroupmeta=cpgm,
+                                        cpeakgroupmeta=self.cpgm,
                                         isotopes=row[names['isotopes']] if 'isotopes' in names else None,
                                         adducts=row[names['adduct']] if 'adduct' in names else None,
                                         pcgroup=row[names['pcgroup']] if 'pcgroup' in names else None,
@@ -390,7 +445,7 @@ class LcmsDataTransfer(object):
         eicmeta.save()
 
         cpeaks_d = {c.idi: c.pk for c in CPeak.objects.filter(xcmsfileinfo__metabinputdata=md)}
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
         eics = []
         c = 0
@@ -426,12 +481,12 @@ class LcmsDataTransfer(object):
 
         cpeakgrouplink = []
 
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
         cpeaks_d = {c.idi: c.pk for c in CPeak.objects.filter(xcmsfileinfo__metabinputdata=md)}
 
         for row in cursor:
 
-            if len(cpeakgrouplink) % 1000 == 0:
+            if len(cpeakgrouplink) % 500 == 0:
                 CPeakGroupLink.objects.bulk_create(cpeakgrouplink)
                 cpeakgrouplink = []
 
@@ -494,7 +549,7 @@ class LcmsDataTransfer(object):
 
         nms = []
         for row in cursor:
-            if len(row) % 1000 == 0:
+            if len(row) % 500 == 0:
                 NeutralMass.objects.bulk_create(nms)
                 nms = []
 
@@ -514,12 +569,12 @@ class LcmsDataTransfer(object):
             return 0
 
         nm_d = {n.idi: n.id for n in NeutralMass.objects.filter(metabinputdata=md)}
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
         cursor.execute('SELECT * FROM adduct_annotations')
         names = sql_column_names(cursor)
         ads = []
         for row in cursor:
-            if len(row) % 1000 == 0:
+            if len(row) % 500 == 0:
                 Adduct.objects.bulk_create(ads)
                 ads = []
 
@@ -540,12 +595,12 @@ class LcmsDataTransfer(object):
         if not check_table_exists_sqlite(cursor, 'isotope_annotations'):
             return 0
 
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
         cursor.execute('SELECT * FROM isotope_annotations')
         names = sql_column_names(cursor)
         isos = []
         for row in cursor:
-            if len(row) % 1000 ==0:
+            if len(row) % 500 ==0:
                 Isotope.objects.bulk_create(isos)
                 isos = []
 
@@ -560,7 +615,7 @@ class LcmsDataTransfer(object):
 
         Isotope.objects.bulk_create(isos)
 
-    def save_spekmeta_cpeak_frag_link(self):
+    def save_speakmeta_cpeak_frag_link(self):
         md = self.md
         cursor = self.cursor
         CPeakGroupMeta = self.cpeakgroupmeta_class
@@ -581,7 +636,7 @@ class LcmsDataTransfer(object):
         speakmeta_cpeak_frag_links = []
 
         for row in cursor:
-            if len(speakmeta_cpeak_frag_links) % 1000 == 0:
+            if len(speakmeta_cpeak_frag_links) % 500 == 0:
                 SPeakMetaCPeakFragLink.objects.bulk_create(speakmeta_cpeak_frag_links)
                 speakmeta_cpeak_frag_links = []
 
@@ -594,20 +649,20 @@ class LcmsDataTransfer(object):
             )
 
         SPeakMetaCPeakFragLink.objects.bulk_create(speakmeta_cpeak_frag_links)
-        cpgm = CPeakGroupMeta.objects.get(metabinputdata=md)
+
 
         # Add the number of msms events for grouped feature (not possible with django sql stuff)
-        sqlstmt = '''UPDATE metab_cpeakgroup t
+        sqlstmt = '''UPDATE mbrowse_cpeakgroup t
                         INNER JOIN (
-                                (SELECT cpg.id, COUNT(cpgl.id) AS counter FROM metab_cpeakgroup as cpg 
-    	                          LEFT JOIN metab_cpeakgrouplink as cpgl 
+                                (SELECT cpg.id, COUNT(cpgl.id) AS counter FROM mbrowse_cpeakgroup as cpg 
+    	                          LEFT JOIN mbrowse_cpeakgrouplink as cpgl 
                                     ON cpgl.cpeakgroup_id=cpg.id
-                                  LEFT JOIN metab_speakmetacpeakfraglink as scfl 
+                                  LEFT JOIN mbrowse_speakmetacpeakfraglink as scfl 
                                     ON cpgl.cpeak_id=scfl.cpeak_id
                                     WHERE scfl.id is not NULL AND cpg.cpeakgroupmeta_id={}
                                   group by cpg.id)
                                   ) m ON t.id = m.id
-                                SET t.msms_count = m.counter'''.format(cpgm.id)
+                                SET t.msms_count = m.counter'''.format(self.cpgm.id)
 
         with connection.cursor() as cursor:
             cursor.execute(sqlstmt)
@@ -626,18 +681,17 @@ class LcmsDataTransfer(object):
         speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
 
         library_d = {c.accession: c.pk for c in LibrarySpectraMeta.objects.all()}
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
         matches = []
         for row in cursor:
 
-            if len(matches) % 1000 == 0:
+            if len(matches) % 500 == 0:
                 SpectralMatching.objects.bulk_create(matches)
                 matches = []
 
-            if row[names['source_name']] in ['massbank', 'mona-experimental']:
+            if row[names['source_name']] in ['massbank', 'mona-experimental', 'lipidblast']:
                 # Currently only works for mass bank (or anything from the experimental MONA library)
-
 
                 try:
                     lsm_id = library_d[row[names['accession']]]
@@ -675,7 +729,7 @@ class LcmsDataTransfer(object):
 
         # CPeakGroupAnn.objects.bulk_create(matchxs)
 
-    def save_metfrag(self):
+    def save_metfrag(self, celery_obj):
         md = self.md
         cursor = self.cursor
 
@@ -708,7 +762,12 @@ class LcmsDataTransfer(object):
                 # no point storing anything less than 0.6
                 continue
 
-            if len(matches) % 1000 == 0:
+            if celery_obj and len(matches) % 100 == 0:
+                celery_obj.update_state(state='RUNNING',
+                                        meta={'current': 50, 'total': 100,
+                                              'status': 'Metfrag upload, annotation {}'.format(i)})
+
+            if len(matches) % 500 == 0:
                 print(i)
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
@@ -733,14 +792,15 @@ class LcmsDataTransfer(object):
             if comp_search:
                 comp = comp_search[0]
             else:
-
+                print('CHECK LOCALLY')
                 comp = get_pubchem_sqlite_local(identifier)
 
                 if not comp:
-
+                    print('CHECK CID')
                     pc_matches = get_pubchem_compound(identifier, 'cid')
 
                     if not pc_matches:
+                        print('CHECK INCHIKEY')
                         pc_matches = get_pubchem_compound(inchikey, 'inchikey')
                         if not pc_matches:
                             print(row)
@@ -773,7 +833,7 @@ class LcmsDataTransfer(object):
 
         MetFragAnnotation.objects.bulk_create(matches)
 
-    def save_probmetab(self):
+    def save_probmetab(self, celery_obj):
         md = self.md
         cursor = self.cursor
 
@@ -785,7 +845,7 @@ class LcmsDataTransfer(object):
         cursor.execute('SELECT * FROM  probmetab_results')
         names = sql_column_names(cursor)
 
-        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta__metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
         matches = []
 
@@ -796,15 +856,21 @@ class LcmsDataTransfer(object):
             if not row[names['grp_id']]:
                 continue
 
-            if len(matches) % 1000 == 0:
+            if celery_obj and len(matches) % 100 == 0:
+                celery_obj.update_state(state='RUNNING',
+                                        meta={'current': 70, 'total': 100,
+                                              'status': 'Probabmetab upload, annotation {}'.format(c)})
+
+            if len(matches) % 500 == 0:
                 ProbmetabAnnotation.objects.bulk_create(matches)
                 matches = []
 
 
 
+
             # Expect to have majority of KEGG in the Compound model already
             kegg_id = row[names['mpc']].split(':')[1]
-            comp_search = Compound.objects.filter(kegg_id__regex='("|^|,){}(,|$|")'.format(kegg_id)) # this needs to be update to be proper relational as the regex fails in some cases!
+            comp_search = Compound.objects.filter(kegg_id__regex='(^|.*,|")({})("|,.*|$)'.format(kegg_id)) # this needs to be update to be proper relational as the regex fails in some cases!
             if comp_search:
                 comp = comp_search[0]
             else:
@@ -825,7 +891,7 @@ class LcmsDataTransfer(object):
 
         ProbmetabAnnotation.objects.bulk_create(matches)
 
-    def save_sirius_csifingerid(self):
+    def save_sirius_csifingerid(self, celery_obj):
         md = self.md
         cursor = self.cursor
 
@@ -839,8 +905,11 @@ class LcmsDataTransfer(object):
         speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
 
         speaks = []
+        matches = []
+
         meta = CSIFingerIDMeta()
         meta.save()
+        comp_d = {}
         for i, row in enumerate(cursor):
 
             UID = row[names['UID']]
@@ -853,6 +922,14 @@ class LcmsDataTransfer(object):
                 if i > 50:
                     break
 
+            if celery_obj and i % 500 == 0:
+                celery_obj.update_state(state='RUNNING',
+                                            meta={'current': 80, 'total': 100,
+                                                  'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
+
+            if i % 500 == 0:
+                update_csifingerid(comp_d, matches)
+                matches = []
 
             if float(row[names['Rank']]) > 6:
                 continue
@@ -861,6 +938,11 @@ class LcmsDataTransfer(object):
             pubchem_ids = row[names['pubchemids']].split(';')
 
             for pubchem_id in pubchem_ids:
+                comp_qs = Compound.objects.filter(pubchem_id__regex='(^|.*,)({})(,.*|$)'.format(pubchem_id))
+                if comp_qs:
+                    comps.append(comp_qs[0])
+                    continue
+
                 comp_search = get_pubchem_sqlite_local(pubchem_id)
 
                 if comp_search:
@@ -888,18 +970,47 @@ class LcmsDataTransfer(object):
                                           smiles=row[names['smiles']],
                                           csifingeridmeta=meta
                                           )
-            match.save()
-            match.compound.add(*comps)
+            matches.append(match)
+            comp_d[i+1] = comps
+            # match.compound.add(*comps)
+
+
+
             speaks.append(speakmeta_d[int(pid)])
 
-        for i in speaks:
-            anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=i, csifingeridmeta=meta)
-            rank = [i.rank for i in anns]
-            rank_score = get_rank_score(rank)
-            for i, ann in enumerate(anns):
-                ann.rank_score = rank_score[i]
-                ann.save()
+        update_csifingerid(comp_d, matches)
 
+        updated_anns = []
+        # get ranked score
+        for i, s in enumerate(speaks):
+            if celery_obj and i % 500 == 0:
+                celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 80, 'total': 100,
+                                          'status': 'SIRIUS CSI-FingerID upload, updating ranks {}'.format(i)})
+                bulk_update(updated_anns)
+                updated_anns = []
+
+            anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=s, csifingeridmeta=meta)
+            rank = [x.rank for x in anns]
+            rank_score = get_rank_score(rank)
+
+            for j, ann in enumerate(anns):
+                ann.rank_score = rank_score[j]
+                updated_anns.append(ann)
+
+        bulk_update(updated_anns)
+
+def update_csifingerid(comp_d, matches):
+    through_model = CSIFingerIDAnnotation.compound.through  # gives you access to auto-created through model
+    mtch_created = CSIFingerIDAnnotation.objects.bulk_create(matches)
+    many2many_links = []
+    for mc in mtch_created:
+        mc_id = CSIFingerIDAnnotation.objects.get(csifingeridmeta=mc.csifingeridmeta, idi=mc.idi,
+                                                  s_peak_meta=mc.s_peak_meta).id
+        for cm in list(set(comp_d[mc.idi])):
+            print(mc_id, cm)
+            many2many_links.append(through_model(csifingeridannotation_id=mc_id, compound=cm))
+    through_model.objects.bulk_create(many2many_links)
 
 
 def get_pubchem_sqlite_local(pubchem_id):
@@ -937,7 +1048,7 @@ def create_compound_from_pubchem_local(row, names):
             mtch_compound.pubchem_id = cid
             mtch_compound.save()
 
-        elif not re.match('(^|,){}(,|$)'.format(cid), mtch_compound.pubchem_id):
+        elif not re.match('(?:^|.*,)({})(?:,.*|$)'.format(cid), mtch_compound.pubchem_id):
             mtch_compound.pubchem_id = '{},{}'.format(mtch_compound.pubchem_id, cid)
             mtch_compound.save()
 
@@ -964,7 +1075,6 @@ def create_compound_from_pubchem_local(row, names):
         return comp
 
 def save_compound_kegg(kegg_compound):
-
 
     comp = Compound(inchikey_id=kegg_compound['inchikey_id'] if 'inchikey_id' in kegg_compound else 'UNKNOWN_' + str(uuid.uuid4()),
                     name=kegg_compound['name'] if 'name' in kegg_compound else 'unknown name',

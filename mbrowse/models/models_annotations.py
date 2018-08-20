@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 import os
-import datetime
 from django.db import models
+from django.utils import timezone
+from datetime import datetime
+from django.contrib.auth.models import User
 
 
 class SpectralMatching(models.Model):
@@ -58,9 +60,6 @@ class CSIFingerIDMeta(models.Model):
 
 
 
-
-
-
 class CAnnotation(models.Model):
 
     compound = models.ForeignKey('Compound', on_delete=models.CASCADE, null=True)
@@ -80,6 +79,22 @@ class CAnnotation(models.Model):
         return '{} {} {}'.format(self.id, self.compound, self.cpeakgroup)
 
 
+class CAnnotationDownload(models.Model):
+    rank = models.IntegerField(default=0, null=False, blank=False, help_text='What level of ranked peaks to include'
+                                                                             ' (leave at 0 to include all)')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, help_text='The user requesting download', null=True,
+                             blank=True)
+
+
+def data_file_store(instance, filename):
+    now = datetime.now()
+    return os.path.join('data', 'cannoation_download_results', now.strftime("%Y_%m_%d"), filename)
+
+class CAnnotationDownloadResult(models.Model):
+    annotation_file = models.FileField(upload_to=data_file_store, blank=True, null=True)
+    created = models.DateTimeField(default=timezone.now)
+    cannotationdownload = models.ForeignKey('CAnnotationDownload', on_delete=models.CASCADE)
 
 class CAnnotationWeight(models.Model):
     spectral_matching_weight = models.FloatField(default=1)

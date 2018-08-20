@@ -66,7 +66,7 @@ class CPeakGroup(models.Model):
     msms_count = models.IntegerField(blank=True, null=True)
     cpeak = models.ManyToManyField(CPeak, through='CPeakGroupLink')
     cpeakgroupmeta = models.ForeignKey('CPeakGroupMeta', on_delete=models.CASCADE)
-    best_annotation = models.CharField(max_length=200, null=True, blank=True)
+    best_annotation = models.TextField(null=True, blank=True)
     best_score = models.FloatField(null=True, blank=True)
 
 

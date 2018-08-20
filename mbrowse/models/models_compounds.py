@@ -17,7 +17,10 @@ class Compound(models.Model):
     molecular_formula = models.TextField(blank=True, null=True)
     smiles = models.TextField(blank=True, null=True)
 
-    pubchem_id = models.TextField(blank=True, null=True)
+    pubchem_id = models.TextField(blank=True, null=True, help_text='This is the string of pubchem_ids originally taken '
+                                                                   'from the metplus_db, this is being replaced '
+                                                                   'by a standard relationship based database table'
+                                                                   'model - PubChem ')
     chemspider_id = models.TextField(blank=True, null=True)
     kegg_id = models.TextField(blank=True, null=True)
     hmdb_id = models.TextField(blank=True, null=True)
@@ -30,7 +33,7 @@ class Compound(models.Model):
 
     monoisotopic_mass = models.FloatField(blank=True, null=True)
     exact_mass = models.FloatField(blank=True, null=True)
-    molecular_weight = models.FloatField(max_length=100, blank=True, null=True)
+    molecular_weight = models.FloatField(blank=True, null=True)
     xlogp = models.FloatField(null=True, blank=True)
 
     category = models.TextField(blank=True, null=True)
@@ -40,6 +43,20 @@ class Compound(models.Model):
     FA = models.TextField(blank=True, null=True)  # potential to use for LipidSearch
 
     brite = models.TextField(blank=True, null=True)  # KEGG brite information
+
+    def __str__(self):  # __unicode__ on Python 2
+        return self.name
+
+class PubChem(models.Manager):
+    inchikey = models.CharField(max_length=254)
+    name = models.TextField(blank=True, null=True)
+    iupac_name = models.TextField(blank=True, null=True)
+    systematic_name = models.TextField(blank=True, null=True)
+    molecular_formula = models.TextField(blank=True, null=True)
+    monoisotopic_mass = models.FloatField(blank=True, null=True)
+    exact_mass = models.FloatField(blank=True, null=True)
+    molecular_weight = models.FloatField(max_length=100, blank=True, null=True)
+    cid =  models.CharField(max_length=254, primary_key=True)
 
     def __str__(self):  # __unicode__ on Python 2
         return self.name
