@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
-import csv
-import tempfile
-import os
+
 from datetime import datetime
 from django.views.generic import View
 from django.shortcuts import render
@@ -18,8 +16,7 @@ from mbrowse.models import CPeakGroupMeta, CAnnotation, CAnnotationDownloadResul
 from mbrowse.tables import CAnnotationTable, CAnnotationDownloadResultTable
 from mbrowse.filter import CAnnotationFilter, CAnnotationDownloadResultFilter
 from mbrowse.forms import CAnnotationDownloadForm
-from django.shortcuts import redirect
-
+from mbrowse.tasks import download_cannotations_task
 
 class CAnnotationListView(LoginRequiredMixin, SingleTableMixin, FilterView):
     '''
@@ -63,35 +60,43 @@ class CAnnotationDownloadView(LoginRequiredMixin, CreateView):
     form_class = CAnnotationDownloadForm
 
     def form_valid(self, form):
-        rank = form.cleaned_data['rank']
-        if rank:
-            canns = CAnnotation.objects.filter(rank_lte=rank)
-        else:
-            canns = CAnnotation.objects.all()
-
-        canns_table = CAnnotationTable(canns)
-
-        form.instance.user = self.request.user
         obj = form.save()
-        canns_download_result = CAnnotationDownloadResult()
-        canns_download_result.cannotationdownload = obj
-        canns_download_result.save()
 
+        result = download_cannotations_task.delay(obj.pk, self.request.user.id)
+        self.request.session['result'] = result.id
 
-        dirpth = tempfile.mkdtemp()
-        fnm = 'c_peak_group_annotations.csv'
-        tmp_pth = os.path.join(dirpth, fnm)
+        return render(self.request, 'gfiles/status.html', {'s': 0, 'progress': 0})
 
-        print(canns_table)
-        # django-tables2 table to csv
-        with open(tmp_pth, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',')
-            for row in canns_table.as_values():
-                writer.writerow(row)
-
-        canns_download_result.canns_file.save(fnm, File(open(tmp_pth)))
-
-        return super(CAnnotationDownloadView, self).form_valid(form)
+    # def form_valid(self, form):
+    #     rank = form.cleaned_data['rank']
+    #     if rank:
+    #         canns = CAnnotation.objects.filter(rank_lte=rank)
+    #     else:
+    #         canns = CAnnotation.objects.all()
+    #
+    #     canns_table = CAnnotationTable(canns)
+    #
+    #     form.instance.user = self.request.user
+    #     obj = form.save()
+    #     canns_download_result = CAnnotationDownloadResult()
+    #     canns_download_result.cannotationdownload = obj
+    #     canns_download_result.save()
+    #
+    #     dirpth = tempfile.mkdtemp()
+    #     fnm = 'c_peak_group_annotations.csv'
+    #     tmp_pth = os.path.join(dirpth, fnm)
+    #
+    #     print(canns_table)
+    #     # django-tables2 table to csv
+    #     with open(tmp_pth, 'w', newline='') as csvfile:
+    #         writer = csv.writer(csvfile, delimiter=',')
+    #         for row in canns_table.as_values():
+    #             print(row)
+    #             writer.writerow(row)
+    #
+    #     canns_download_result.annotation_file.save(fnm, File(open(tmp_pth)))
+    #
+    #     return super(CAnnotationDownloadView, self).form_valid(form)
 
 
 

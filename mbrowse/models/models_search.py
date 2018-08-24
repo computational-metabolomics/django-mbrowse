@@ -4,6 +4,7 @@ from django.db import models
 from mbrowse.models import Polarity
 from datetime import datetime
 import os
+from django.contrib.auth.models import User
 
 class MinMaxFloat(models.FloatField):
     def __init__(self, min_value=None, max_value=None, *args, **kwargs):
@@ -31,6 +32,10 @@ class SearchFragParam(models.Model):
     filter_on_precursor = models.BooleanField(blank=True)
     polarity = models.ManyToManyField(Polarity,
                                       help_text='Choose polarites to search against')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
+                             blank=True)
+
 
     def __str__(self):              # __unicode__ on Python 2
         return self.description
@@ -63,6 +68,9 @@ class SearchSingle(models.Model):
     ppm_library_tolerance = models.FloatField(blank=True, null=True, default=10)
     polarity = models.ManyToManyField(Polarity,
                                       help_text='Choose polarites to search against')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True,
+                             blank=True)
 
     # adduct_rule = models.ManyToManyField('AdductRule',
     #                                      help_text='Choose which adduct rules are acceptable')

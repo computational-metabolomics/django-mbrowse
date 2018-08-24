@@ -18,8 +18,9 @@ class SearchNmParamCreateView(LoginRequiredMixin, CreateView):
     success_url = '/misa/success'
 
     def form_valid(self, form):
+        form.instance.user = self.request.user
         snp = form.save()
-        result = search_nm_task.delay(snp.id)
+        result = search_nm_task.delay(snp.id, self.request.user.id)
         self.request.session['result'] = result.id
         return render(self.request, 'gfiles/status.html', {'s': 0, 'progress': 0})
 
@@ -30,9 +31,9 @@ class SearchMzParamCreateView(LoginRequiredMixin, CreateView):
     success_url = '/misa/success'
 
     def form_valid(self, form):
+        form.instance.user = self.request.user
         smp = form.save()
-
-        result = search_mz_task.delay(smp.id)
+        result = search_mz_task.delay(smp.id, self.request.user.id)
         self.request.session['result'] = result.id
         return render(self.request, 'gfiles/status.html', {'s': 0, 'progress': 0})
 
@@ -43,10 +44,10 @@ class SearchFragParamCreateView(LoginRequiredMixin, CreateView):
     success_url = '/misa/success'
 
     def form_valid(self, form):
+        form.instance.user = self.request.user
         sp = form.save()
-
         # result = search_frag(sp.id)
-        result = search_frag_task.delay(sp.id)
+        result = search_frag_task.delay(sp.id, self.request.user.id)
         self.request.session['result'] = result.id
         # self.request.session['result'] = result.id
         return render(self.request, 'gfiles/status.html', {'s': 0, 'progress': 0})
@@ -57,15 +58,36 @@ class SearchNmResultListView(LoginRequiredMixin, SingleTableMixin, ListView):
     table_class = SearchNmResultTable
     template_name = 'mbrowse/searchresult_list.html'
 
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return self.model.objects.none()
+        qs = self.model.objects.filter(searchnmparam__user=self.request.user)
+        return qs
+
+
 class SearchMzResultListView(LoginRequiredMixin, SingleTableMixin, ListView):
     model = SearchMzResult
     table_class = SearchMzResultTable
     template_name = 'mbrowse/searchresult_list.html'
 
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return self.model.objects.none()
+        qs = self.model.objects.filter(searchmzparam__user=self.request.user)
+        return qs
+
+
 class SearchFragResultListView(LoginRequiredMixin, SingleTableMixin, ListView):
     model = SearchFragResult
     table_class = SearchFragResultTable
     template_name = 'mbrowse/searchresult_list.html'
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated():
+            return self.model.objects.none()
+        qs = self.model.objects.filter(searchfragparam__user=self.request.user)
+        return qs
+
 
 class SearchResultSummaryView(LoginRequiredMixin, View):
     # initial = {'key': 'value'}

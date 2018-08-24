@@ -4,8 +4,7 @@
 {% block sb_admin_breadcrumb %}
     <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
     / <a href="{% url "general_summary" %}"></i> Mbrowse Summary </a>
-    / <a href="{% url "cpeakgroupmeta_summary" %}"> LC-MS(/MS) Annotation Summary</a>
     / <a href="{% url "canns_download" %}"> Download LC-MS(/MS) Annotation data </a>
 {% endblock sb_admin_breadcrumb %}
-{% block sb_admin_breadcrumb_active %} / Search Result {% endblock sb_admin_breadcrumb_active %}
+{% block sb_admin_breadcrumb_active %} / Download files {% endblock sb_admin_breadcrumb_active %}
 {% block panel_title %}Summary{% endblock panel_title %}

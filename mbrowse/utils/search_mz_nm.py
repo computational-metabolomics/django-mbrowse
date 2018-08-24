@@ -37,17 +37,18 @@ def search_mz(smp_id, celery_obj):
     hc = 0
     if 1 in ms_levels:
 
-
-
         fnm = 'single_mz_search_result_chrom.csv'
         tmp_pth = os.path.join(dirpth, fnm)
 
-        with open(tmp_pth, 'wb') as csvfile:
+        with open(tmp_pth, 'w') as csvfile:
             writer = csv.writer(csvfile)
             for m in masses:
                 if celery_obj:
-                    celery_obj.update_state(state='Searching for masses (ms1 chrom)',
-                                            meta={'current': c, 'total': total_time})
+                    celery_obj.update_state(state='RUNNING',
+                                            meta={'current': c,
+                                                  'total': total_time,
+                                                  'status':'Searching for masses (ms1 chrom)'
+                                                  })
                 c += 1
                 hc += search_mz_chrom(float(m), float(ppm_target_tolerance), float(ppm_library_tolerance), polarities, writer,
                                 first)
@@ -66,13 +67,15 @@ def search_mz(smp_id, celery_obj):
         tmp_pth = os.path.join(dirpth, fnm)
 
 
-        with open(tmp_pth, 'wb') as csvfile:
+        with open(tmp_pth, 'w') as csvfile:
             writer = csv.writer(csvfile)
             for m in masses:
                 if celery_obj:
                     if celery_obj:
-                        celery_obj.update_state(state='Searching for masses (>ms2 scans)',
-                                                meta={'current': c, 'total': total_time})
+                        celery_obj.update_state(state='RUNNING',
+                                                meta={'current': c,
+                                                      'total': total_time,
+                                                      'status': 'Searching for masses (>ms2 scans)'})
                 c += 1
                 hc += search_mz_scans(float(m), float(ppm_target_tolerance), float(ppm_library_tolerance), polarities,
                                 ms_levels,
@@ -110,13 +113,15 @@ def search_nm(snp_id, celery_obj):
 
     c = 0
     hc = 0
-    with open(tmp_pth, 'wb') as csvfile:
+    with open(tmp_pth, 'w') as csvfile:
         writer = csv.writer(csvfile)
 
         for m in masses:
             if celery_obj:
-                celery_obj.update_state(state='Searching for masses',
-                                        meta={'current': c, 'total': len(masses)})
+                celery_obj.update_state(state='RUNNING',
+                                        meta={'current': c,
+                                              'total': len(masses),
+                                              'status': 'Searching for masses'})
 
             hc += search_nm_chrom(float(m), float(ppm_target_tolerance), float(ppm_library_tolerance), polarities, writer, first)
             first = False
@@ -139,59 +144,50 @@ def search_mz_chrom(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
     with connection.cursor() as cursor:
         query = '''
-                SELECT          metab_cpeakgroup.id AS c_peak_group_id, 
-				metab_cpeakgroup.mzmed AS mzmed, 
-                metab_cpeakgroup.rtmed AS rtmed, 
+                SELECT          mbrowse_cpeakgroup.id AS c_peak_group_id, 
+				mbrowse_cpeakgroup.mzmed AS mzmed, 
+                mbrowse_cpeakgroup.rtmed AS rtmed, 
                 
-                metab_adductrule.adduct_type AS adduct_type, 
-                metab_adductrule.massdiff AS massdiff, 
+                mbrowse_adductrule.adduct_type AS adduct_type, 
+                mbrowse_adductrule.massdiff AS massdiff, 
                 
-                metab_cpeak.mz AS c_peak_mz,
-                metab_cpeak.rt AS c_peak_rt, 
-                metab_cpeak._into AS c_peaks_into, 
+                mbrowse_cannotation.spectral_matching_average_score AS spectral_matching_score, 
+                mbrowse_cannotation.metfrag_average_score AS metfrag_average_score, 
+                mbrowse_cannotation.mzcloud_average_score AS mzcloud_average_score,
+                mbrowse_cannotation.sirius_csifingerid_average_score AS sirius_csifingerid_average_score,
+                mbrowse_cannotation.ms1_average_score AS ms1_average_score,
+                mbrowse_cannotation.rank AS rank,
+                mbrowse_cannotation.weighted_score AS weighted_score,
                 
-                metab_speakmeta.precursor_mz AS frag_s_peak_meta_precursor, 
-                metab_speakmeta.scan_num AS frag_s_peak_meta_scan_num, 
-                
-                metab_cannotation.spectral_matching_average_score AS spectral_matching_score, 
-                metab_cannotation.metfrag_average_score AS metfrag_average_score, 
-                metab_cannotation.mzcloud_average_score AS mzcloud_average_score,
-                metab_cannotation.sirius_csifingerid_average_score AS sirius_csifingerid_average_score,
-                metab_cannotation.ms1_average_score AS ms1_average_score,
-                
-                metab_compound.name AS compound_name,
-                metab_compound.pubchem_id AS pubchem_id,
-                metab_compound.exact_mass AS compound_exact_mass,
+                mbrowse_compound.name AS compound_name,
+                mbrowse_compound.pubchem_id AS pubchem_id,
+                mbrowse_compound.exact_mass AS compound_exact_mass,
                 
                 mzmed-((mzmed*0.000001)*{ppm}) as mzmed_low, 
                 mzmed+((mzmed*0.000001)*{ppm}) as mzmed_high, 
                 
-                metab_run.prefix AS file_prefix, 
-                metab_polarity.polarity AS polarity 
+                mbrowse_polarity.polarity AS polarity,
+                mbrowse_metabinputdata.id AS inputdata_id,
+                mbrowse_metabinputdata.name AS inputdata_name
+                 
                 
+                FROM mbrowse_cpeakgroup 
+                LEFT JOIN mbrowse_cannotation ON mbrowse_cpeakgroup.id=mbrowse_cannotation.cpeakgroup_id
                 
-                FROM metab_cpeakgroup 
-                LEFT JOIN metab_cannotation ON metab_cpeakgroup.id=metab_cannotation.cpeakgroup_id
+                LEFT JOIN mbrowse_compound ON mbrowse_compound.inchikey_id=mbrowse_cannotation.compound_id
                 
-                LEFT JOIN metab_compound ON metab_compound.inchikey_id=metab_cannotation.compound_id
+                LEFT JOIN mbrowse_adduct ON mbrowse_cpeakgroup.id=mbrowse_adduct.cpeakgroup_id
+                LEFT JOIN mbrowse_adductrule ON mbrowse_adductrule.id=mbrowse_adduct.adductrule_id 
                 
-                LEFT JOIN metab_adduct ON metab_cpeakgroup.id=metab_adduct.cpeakgroup_id
-                LEFT JOIN metab_adductrule ON metab_adductrule.id=metab_adduct.adductrule_id 
+                LEFT JOIN mbrowse_cpeakgroupmeta ON mbrowse_cpeakgroupmeta.id=mbrowse_cpeakgroup.cpeakgroupmeta_id
+                LEFT JOIN mbrowse_polarity ON mbrowse_polarity.id=mbrowse_cpeakgroupmeta.polarity_id
                 
-                LEFT JOIN metab_cpeakgrouplink ON metab_cpeakgrouplink.cpeakgroup_id=metab_cpeakgroup.id 
-                LEFT JOIN metab_cpeak ON metab_cpeakgrouplink.cpeak_id=metab_cpeak.id 
+                LEFT JOIN mbrowse_metabinputdata ON mbrowse_metabinputdata.id=mbrowse_cpeakgroupmeta.metabinputdata_id
                 
-                LEFT JOIN metab_speakmetacpeakfraglink as fraglink ON fraglink.cpeak_id=metab_cpeak.id 
-                LEFT JOIN metab_speakmeta ON metab_speakmeta.id=fraglink.speakmeta_id 
-                
-                LEFT JOIN metab_xcmsfileinfo ON metab_xcmsfileinfo.id=metab_cpeak.xcmsfileinfo_id
-                LEFT JOIN metab_mfile ON metab_mfile.genericfile_ptr_id=metab_xcmsfileinfo.mfile_id
-                LEFT JOIN metab_run ON metab_run.id=metab_mfile.run_id
-                LEFT JOIN metab_polarity ON metab_run.polarity_id=metab_run.polarity_id
-                
-                WHERE metab_polarity.id IN ({polarities})
+                WHERE mbrowse_polarity.id IN ({polarities})
                 HAVING ({target_high} >= mzmed_low) AND (mzmed_high >= {target_low})
                 
+                ORDER BY mbrowse_cpeakgroup.id, rank;
                 '''.format(ppm=ppm_library_tolerance, target_high=target_high, target_low=target_low,
                         polarities=', '.join(str(x) for x in polarities))
 
@@ -213,68 +209,68 @@ def search_mz_scans(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
     with connection.cursor() as cursor:
         query = '''
-                 SELECT      
-			    metab_cpeakgroup.id AS c_peak_group_id, 
-				metab_cpeakgroup.mzmed AS mzmed, 
-                metab_cpeakgroup.rtmed AS rtmed, 
+                 SELECT      mbrowse_cpeakgroup.id AS c_peak_group_id, 
+				mbrowse_cpeakgroup.mzmed AS mzmed, 
+                mbrowse_cpeakgroup.rtmed AS rtmed, 
 
-                metab_adductrule.adduct_type AS adduct_type, 
-                metab_adductrule.massdiff AS massdiff, 
+                mbrowse_adductrule.adduct_type AS adduct_type, 
+                mbrowse_adductrule.massdiff AS massdiff, 
 
-                metab_cpeak.mz AS c_peak_mz,
-                metab_cpeak.rt AS c_peak_rt, 
-                metab_cpeak._into AS c_peaks_into, 
+                mbrowse_cpeak.mz AS c_peak_mz,
+                mbrowse_cpeak.rt AS c_peak_rt, 
+                mbrowse_cpeak._into AS c_peaks_into, 
               
-                metab_speak.id AS speak_id,
-                metab_speak.mz AS speak_mz,
-                metab_speak.i AS speak_inten,
+                mbrowse_speak.id AS speak_id,
+                mbrowse_speak.mz AS speak_mz,
+                mbrowse_speak.i AS speak_inten,
               
-                metab_speakmeta.precursor_mz AS frag_s_peak_meta_precursor, 
-                metab_speakmeta.scan_num AS frag_s_peak_meta_scan_num,
-                metab_speakmeta.ms_level,  
+                mbrowse_speakmeta.precursor_mz AS frag_s_peak_meta_precursor, 
+                mbrowse_speakmeta.scan_num AS frag_s_peak_meta_scan_num,
+                mbrowse_speakmeta.ms_level,  
                 
-                metab_spectralmatching.score AS spectral_matching_score,  
-                metab_spectralmatching.score AS spectral_matching_score,
+                mbrowse_spectralmatching.score AS spectral_matching_score,  
                  
-                # metab_metfrag AS metfrag_score, 
-                # metab_mzcloud AS mzcloud_score,
-                # metab_sirius_csifingerid AS sirius_csifingerid_score,
+                # mbrowse_metfrag AS metfrag_score, 
+                # mbrowse_mzcloud AS mzcloud_score,
+                # mbrowse_sirius_csifingerid AS sirius_csifingerid_score,
 
-                metab_compound.name AS compound_name,
-                metab_compound.pubchem_id AS pubchem_id,
-                metab_compound.exact_mass AS compound_exact_mass,
+                mbrowse_compound.name AS compound_name,
+                mbrowse_compound.pubchem_id AS pubchem_id,
+                mbrowse_compound.exact_mass AS compound_exact_mass,
 
-                metab_speak.mz-((metab_speak.mz*0.000001)*{ppm}) as mzmed_low, 
-                metab_speak.mz+((metab_speak.mz*0.000001)*{ppm}) as mzmed_high, 
+                mbrowse_speak.mz-((mbrowse_speak.mz*0.000001)*{ppm}) as mzmed_low, 
+                mbrowse_speak.mz+((mbrowse_speak.mz*0.000001)*{ppm}) as mzmed_high, 
 
-                metab_run.prefix AS file_prefix, 
-                metab_polarity.polarity AS polarity 
+                mbrowse_run.prefix AS file_prefix, 
+                mbrowse_polarity.polarity AS polarity 
 
 
-                FROM metab_speak
+                FROM mbrowse_speak
                 
-                LEFT JOIN metab_speakmeta ON metab_speakmeta.id=metab_speak.speakmeta_id
+                LEFT JOIN mbrowse_speakmeta ON mbrowse_speakmeta.id=mbrowse_speak.speakmeta_id
                  
-                LEFT JOIN metab_spectralmatching ON metab_speakmeta.id=metab_spectralmatching.s_peak_meta_id
-                LEFT JOIN library_spectra_meta ON library_spectra_meta.id=metab_spectralmatching.library_spectra_meta_id
-                LEFT JOIN metab_compound ON metab_compound.inchikey_id=library_spectra_meta.inchikey_id
+                LEFT JOIN mbrowse_spectralmatching ON mbrowse_speakmeta.id=mbrowse_spectralmatching.s_peak_meta_id
+                LEFT JOIN library_spectra_meta ON library_spectra_meta.id=mbrowse_spectralmatching.library_spectra_meta_id
+                LEFT JOIN mbrowse_compound ON mbrowse_compound.inchikey_id=library_spectra_meta.inchikey_id
                 
-                LEFT JOIN metab_speakmetacpeakfraglink as fraglink ON fraglink.speakmeta_id=metab_speakmeta.id
-                LEFT JOIN metab_cpeak ON fraglink.cpeak_id=metab_cpeak.id
-                LEFT JOIN metab_cpeakgrouplink ON metab_cpeakgrouplink.cpeak_id=metab_cpeak.id
-                LEFT JOIN metab_cpeakgroup ON metab_cpeakgrouplink.cpeakgroup_id=metab_cpeakgroup.id
-                LEFT JOIN metab_adduct ON metab_cpeakgroup.id=metab_adduct.cpeakgroup_id
-                LEFT JOIN metab_adductrule ON metab_adductrule.id=metab_adduct.adductrule_id	
+                LEFT JOIN mbrowse_speakmetacpeakfraglink as fraglink ON fraglink.speakmeta_id=mbrowse_speakmeta.id
+                LEFT JOIN mbrowse_cpeak ON fraglink.cpeak_id=mbrowse_cpeak.id
+                LEFT JOIN mbrowse_cpeakgrouplink ON mbrowse_cpeakgrouplink.cpeak_id=mbrowse_cpeak.id
+                LEFT JOIN mbrowse_cpeakgroup ON mbrowse_cpeakgrouplink.cpeakgroup_id=mbrowse_cpeakgroup.id
+                LEFT JOIN mbrowse_adduct ON mbrowse_cpeakgroup.id=mbrowse_adduct.cpeakgroup_id
+                LEFT JOIN mbrowse_adductrule ON mbrowse_adductrule.id=mbrowse_adduct.adductrule_id	
 
-                LEFT JOIN metab_run ON metab_run.id=metab_speakmeta.run_id
-                LEFT JOIN metab_mfile ON metab_mfile.run_id=metab_run.id  
-                LEFT JOIN metab_polarity ON metab_run.polarity_id=metab_run.polarity_id
+                LEFT JOIN mbrowse_run ON mbrowse_run.id=mbrowse_speakmeta.run_id
+                LEFT JOIN mbrowse_mfile ON mbrowse_mfile.run_id=mbrowse_run.id  
+                LEFT JOIN mbrowse_polarity ON mbrowse_run.polarity_id=mbrowse_run.polarity_id
 
-                WHERE metab_polarity.id IN ({polarities})
-                AND metab_speakmeta.ms_level IN ({ms_levels})
-                AND metab_speakmeta.id IS NOT NULL
+                WHERE mbrowse_polarity.id IN ({polarities})
+                AND mbrowse_speakmeta.ms_level IN ({ms_levels})
+                AND mbrowse_speakmeta.id IS NOT NULL
                 HAVING ({target_high}>= mzmed_low) AND (mzmed_high >= {target_low})
+                
 
+                ORDER BY mbrowse_cpeakgroup.id, rank;
                 '''.format(ppm=ppm_library_tolerance,
                            target_high=target_high,
                            target_low=target_low,
@@ -292,10 +288,10 @@ def search_mz_scans(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
 
 def write_out(query, cursor, first, writer, target_mass, target_low, target_high):
-
+    print(query)
     cursor.execute(query)
     columns = [i[0] for i in cursor.description]
-    columns.extend(['target_mz', 'target_low', 'target_high'])
+    columns.extend(['query_mz', 'query_low', 'query_high'])
     if first:
         writer.writerow(columns)
     c = 0
@@ -315,64 +311,57 @@ def search_nm_chrom(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
 
     with connection.cursor() as cursor:
         query = ''' 
-                SELECT         metab_cpeakgroup.id AS c_peak_group_id, 
-				metab_cpeakgroup.mzmed AS mzmed, 
-                metab_cpeakgroup.rtmed AS rtmed, 
-                metab_cpeakgroup.isotopes AS isotopes, 
+                SELECT         mbrowse_cpeakgroup.id AS c_peak_group_id, 
+				mbrowse_cpeakgroup.mzmed AS mzmed, 
+                mbrowse_cpeakgroup.rtmed AS rtmed, 
+                mbrowse_cpeakgroup.isotopes AS isotopes, 
                 
-                metab_adductrule.adduct_type AS adduct_type, 
-                metab_adductrule.massdiff AS massdiff, 
-                metab_neutralmass.nm AS nm, 
+                mbrowse_adductrule.adduct_type AS adduct_type, 
+                mbrowse_adductrule.massdiff AS massdiff, 
+                mbrowse_neutralmass.nm AS nm, 
                 
+                mbrowse_cannotation.spectral_matching_average_score AS spectral_matching_score, 
+                mbrowse_cannotation.metfrag_average_score AS metfrag_average_score, 
+                mbrowse_cannotation.mzcloud_average_score AS mzcloud_average_score,
+                mbrowse_cannotation.sirius_csifingerid_average_score AS sirius_csifingerid_average_score,
+                mbrowse_cannotation.ms1_average_score AS ms1_average_score,
+                mbrowse_cannotation.rank AS rank,
+                mbrowse_cannotation.weighted_score AS weighted_score,
                 
-                metab_cpeak.mz AS c_peak_mz,
-                metab_cpeak.rt AS c_peak_rt, 
-                metab_cpeak._into AS c_peaks_into, 
-                
-                metab_speakmeta.precursor_mz AS frag_s_peak_meta_precursor, 
-                metab_speakmeta.scan_num AS frag_s_peak_meta_scan_num, 
-                
-                metab_cannotation.spectral_matching_average_score AS spectral_matching_score, 
-                metab_cannotation.metfrag_average_score AS metfrag_average_score, 
-                metab_cannotation.mzcloud_average_score AS mzcloud_average_score,
-                metab_cannotation.sirius_csifingerid_average_score AS sirius_csifingerid_average_score,
-                metab_cannotation.ms1_average_score AS ms1_average_score,
-                
-                metab_compound.name AS compound_name,
-                metab_compound.pubchem_id AS pubchem_id,
-                metab_compound.exact_mass AS compound_exact_mass,
+                mbrowse_compound.name AS compound_name,
+                mbrowse_compound.pubchem_id AS pubchem_id,
+                mbrowse_compound.exact_mass AS compound_exact_mass,
                 
                 nm-((nm*0.000001)*5) as nm_low, 
                 nm+((nm*0.000001)*5) as nm_high, 
                 
-                metab_run.prefix AS file_prefix, 
-                metab_polarity.polarity AS polarity 
+                mbrowse_polarity.polarity AS polarity,
+                mbrowse_metabinputdata.id AS inputdata_id,
+                mbrowse_metabinputdata.name AS inputdata_name
+                 
                 
                 
-                FROM metab_cpeakgroup 
-                LEFT JOIN metab_cannotation ON metab_cpeakgroup.id=metab_cannotation.cpeakgroup_id
+                FROM mbrowse_cpeakgroup 
+                LEFT JOIN mbrowse_cannotation ON mbrowse_cpeakgroup.id=mbrowse_cannotation.cpeakgroup_id
                 
-                LEFT JOIN metab_compound ON metab_compound.inchikey_id=metab_cannotation.compound_id
+                LEFT JOIN mbrowse_compound ON mbrowse_compound.inchikey_id=mbrowse_cannotation.compound_id
                 
-                LEFT JOIN metab_adduct ON metab_cpeakgroup.id=metab_adduct.cpeakgroup_id
-                LEFT JOIN metab_adductrule ON metab_adductrule.id=metab_adduct.adductrule_id 
+                LEFT JOIN mbrowse_adduct ON mbrowse_cpeakgroup.id=mbrowse_adduct.cpeakgroup_id
+                LEFT JOIN mbrowse_adductrule ON mbrowse_adductrule.id=mbrowse_adduct.adductrule_id 
                 
-                LEFT JOIN metab_neutralmass ON metab_neutralmass.id=metab_adduct.neutralmass_id 
+                LEFT JOIN mbrowse_neutralmass ON mbrowse_neutralmass.id=mbrowse_adduct.neutralmass_id 
+                                
+                LEFT JOIN mbrowse_cpeakgroupmeta ON mbrowse_cpeakgroupmeta.id=mbrowse_cpeakgroup.cpeakgroupmeta_id
+                LEFT JOIN mbrowse_polarity ON mbrowse_polarity.id=mbrowse_cpeakgroupmeta.polarity_id
                 
-                LEFT JOIN metab_cpeakgrouplink ON metab_cpeakgrouplink.cpeakgroup_id=metab_cpeakgroup.id 
-                LEFT JOIN metab_cpeak ON metab_cpeakgrouplink.cpeak_id=metab_cpeak.id 
-                
-                LEFT JOIN metab_speakmetacpeakfraglink as fraglink ON fraglink.cpeak_id=metab_cpeak.id 
-                LEFT JOIN metab_speakmeta ON metab_speakmeta.id=fraglink.speakmeta_id 
-                
-                LEFT JOIN metab_xcmsfileinfo ON metab_xcmsfileinfo.id=metab_cpeak.xcmsfileinfo_id
-                LEFT JOIN metab_mfile ON metab_mfile.genericfile_ptr_id=metab_xcmsfileinfo.mfile_id
-                LEFT JOIN metab_run ON metab_run.id=metab_mfile.run_id
-                LEFT JOIN metab_polarity ON metab_run.polarity_id=metab_run.polarity_id
+                LEFT JOIN mbrowse_metabinputdata ON mbrowse_metabinputdata.id=mbrowse_cpeakgroupmeta.metabinputdata_id
                 
 
-                WHERE metab_polarity.id IN ({polarities})
+
+                WHERE mbrowse_polarity.id IN ({polarities})
                 HAVING ({target_high} >= nm_low) AND (nm_high >= {target_low})
+                
+                ORDER BY mbrowse_cpeakgroup.id, rank;
 
                 '''.format(ppm=ppm_library_tolerance, target_high=target_high, target_low=target_low,
                                    polarities=', '.join(str(x) for x in polarities))

@@ -9,6 +9,7 @@ from gfiles.models import GenericFile
 class MetabInputData(models.Model):
     date = models.DateField(auto_now_add=True)
     gfile = models.ForeignKey(GenericFile, null=False, blank=False)
+    name = models.CharField(max_length=500, null=True, blank=True)
 
     def __str__(self):  # __unicode__ on Python 2
         return '{}: {}'.format(self.pk, self.gfile.original_filename)

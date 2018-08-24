@@ -18,6 +18,7 @@ from mbrowse.models import MetabInputData, CPeakGroup, CPeakGroupMeta, Eic, SPea
 from mbrowse.tables import CPeakGroupTable, CPeakGroupMetaTable, EicTable, SPeakTable
 from mbrowse.filter import CPeakGroupFilter
 from mbrowse.tasks import save_lcms_data_task
+from django.contrib import messages
 
 
 #################################################################################
@@ -32,8 +33,9 @@ class UploadLCMSDataset(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         obj = form.save()
 
-        result = save_lcms_data_task.delay(obj.pk)
+        result = save_lcms_data_task.delay(obj.pk, self.request.user.id)
         self.request.session['result'] = result.id
+
         return render(self.request, 'gfiles/status.html', {'s': 0, 'progress': 0})
 
 

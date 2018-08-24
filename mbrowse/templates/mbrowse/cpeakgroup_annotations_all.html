@@ -4,9 +4,8 @@
 {% block sb_admin_breadcrumb %}
     <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
     / <a href="{% url "general_summary" %}"> MBrowse Summary</a>
-    / <a href="{% url "cpeakgroupmeta_summary" %}"> LC-MS(/MS) Annotation Summary</a>
 {% endblock sb_admin_breadcrumb %}
-{% block sb_admin_breadcrumb_active %} / LC peak annotation (all) {% endblock sb_admin_breadcrumb_active %}
+{% block sb_admin_breadcrumb_active %} / LC-MS (/MS) peak annotation (all) {% endblock sb_admin_breadcrumb_active %}
 {% block panel_title %}Summary{% endblock panel_title %}
 
 {% block preamble %}

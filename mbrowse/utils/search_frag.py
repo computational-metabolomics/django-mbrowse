@@ -20,8 +20,8 @@ from mbrowse.models import (
 def search_frag(sp_id, celery_obj=None):
 
     if celery_obj:
-        celery_obj.update_state(state='Spectral matching --',
-                                meta={'current': 0, 'total': 100})
+        celery_obj.update_state(state='RUNNING',
+                                meta={'current': 0, 'total': 100, 'status': 'Spectral matching --'})
 
     sfp = SearchFragParam.objects.get(id=sp_id)
     # if smp.mass_type=='mz':
@@ -43,12 +43,14 @@ def search_frag(sp_id, celery_obj=None):
 
 
     for i, row in enumerate(reader_list):
+
         q_mz[i] = row['mz']
         q_i[i] = row['i']
 
     q_ra = q_i / q_i.max()
-    q_ra = q_ra[q_ra > ra_threshold]
-    q_mz = q_mz[q_ra > ra_threshold]
+    q_ra_bool = q_ra > ra_threshold
+    q_ra = q_ra[q_ra_bool]
+    q_mz = q_mz[q_ra_bool]
 
 
     target_prec_low = mz_precursor - ((mz_precursor * 0.000001) * ppm_precursor_tolerance)
@@ -65,8 +67,8 @@ def search_frag(sp_id, celery_obj=None):
 
     if not spms:
         if celery_obj:
-            celery_obj.update_state(state='No matches found',
-                                meta={'current': 100, 'total': 100})
+            celery_obj.update_state(state='SUCCESS',
+                                meta={'current': 100, 'total': 100, 'status': 'No matches found'})
         sr = SearchFragResult()
         sr.searchfragparam_id = sp_id
         sr.matches = False
@@ -78,11 +80,13 @@ def search_frag(sp_id, celery_obj=None):
     total_time = len(spms)+1
     current = 0
     for spm in spms:
-        if c>10000:
+        if c > 500:
             if celery_obj:
                 current = current+c
-                celery_obj.update_state(state='Spectral matching scanid {}'.format(spm.id),
-                                    meta={'current': current, 'total': total_time})
+                celery_obj.update_state(state='RUNNING',
+                                    meta={'current': current,
+                                          'total': total_time,
+                                          'status': 'Spectral matching scanid {}'.format(spm.id)})
                 print(c)
                 c = 0
 
@@ -97,11 +101,11 @@ def search_frag(sp_id, celery_obj=None):
             l_mz[i] = speaks[i]['mz']
             l_i[i] = speaks[i]['i']
 
-
         l_ra = l_i / l_i.max()
-        l_ra = l_ra[l_ra>ra_threshold]
-        l_mz = l_mz[l_ra>ra_threshold]
 
+        ra_bool = l_ra > ra_threshold
+        l_ra = l_ra[ra_bool]
+        l_mz = l_mz[ra_bool]
 
         dpc = spectral_match(q_mz, l_mz, q_ra, l_ra, ppm_product_tolerance, ra_diff_threshold, weight_mz=2, weight_ra=0.5)
 
@@ -111,11 +115,11 @@ def search_frag(sp_id, celery_obj=None):
 
     # Get a nice join of the data we want
     if celery_obj:
-        celery_obj.update_state(state='Saving result file',
-                                meta={'current': current, 'total': total_time})
+        celery_obj.update_state(state='RUNNING',
+                                meta={'current': current, 'total': total_time, 'status': 'Saving result file'})
 
     results = SPeakMeta.objects.filter(
-        pk__in=matches.keys()
+        pk__in=list(matches)
     ).values(
         'id',
         'precursor_i',
@@ -139,6 +143,7 @@ def search_frag(sp_id, celery_obj=None):
         'cpeak__cpeakgroup__cannotation__sirius_csifingerid_average_score',
         'cpeak__cpeakgroup__cannotation__spectral_matching_average_score',
         'cpeak__cpeakgroup__cannotation__weighted_score',
+        'cpeak__cpeakgroup__cannotation__rank',
         'run__mfile__original_filename',
         'run__prefix',
         'spectralmatching__score',
@@ -153,8 +158,11 @@ def search_frag(sp_id, celery_obj=None):
     fnm = 'frag_search_result_scans.csv'
     tmp_pth = os.path.join(dirpth, fnm)
 
-    with open(tmp_pth, 'wb') as csvfile:
-        dwriter = csv.DictWriter(csvfile, fieldnames=['spectral_match_score_user']+results[0].keys())
+
+    print('RESULTS', results)
+    print(list(matches))
+    with open(tmp_pth, 'w') as csvfile:
+        dwriter = csv.DictWriter(csvfile, fieldnames=['spectral_match_score_user']+list(results[0]))
         dwriter.writeheader()
         for r in results:
             r['spectral_match_score_user'] = matches[r['id']]
@@ -163,8 +171,8 @@ def search_frag(sp_id, celery_obj=None):
     sr.scans.save(fnm, File(open(tmp_pth)))
 
     if celery_obj:
-        celery_obj.update_state(state='COMPLETED',
-                                meta={'current': 100, 'total': 100})
+        celery_obj.update_state(state='SUCCESS',
+                                meta={'current': 100, 'total': 100, 'status': 'completed'})
 
 
     # export to a csv

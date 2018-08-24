@@ -25,8 +25,8 @@ def add_runs_mfiles_filelist(filelist, user, save_as_link, celery_obj=False):
     prefixes = get_all_prefixes(filelist)
 
     if celery_obj:
-        celery_obj.update_state(state='Adding runs to database',
-                                meta={'current': 0.1, 'total': 100})
+        celery_obj.update_state(state='RUNNING',
+                                meta={'current': 0.1, 'total': 100, 'status': 'Adding runs to database'})
 
     runs = add_runs(prefixes)
 
@@ -98,9 +98,9 @@ def add_mfiles(namelist, runs, user, save_as_link=False, celery_obj=False):
 
     for n in namelist:
         if celery_obj:
-            bname = os.path.basename(n)[:45]  # limited number of characters for status SQL column
-            celery_obj.update_state(state='File {}'.format(bname),
-                                    meta={'current':c, 'total':total})
+
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current':c, 'total':total, 'status': 'File {}'.format(os.path.basename(n))})
             c+=1
         prefix = get_prefix(n)
         original_filename = os.path.basename(n)

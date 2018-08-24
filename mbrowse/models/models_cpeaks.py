@@ -86,7 +86,7 @@ class CPeakGroup(models.Model):
 class CPeakGroupMeta(models.Model):
     date = models.DateField(auto_now_add=True)
     metabinputdata = models.ForeignKey(MetabInputData, on_delete=models.CASCADE)
-
+    polarity = models.ForeignKey('Polarity', on_delete=models.CASCADE, null=True)
     def __str__(self):  # __unicode__ on Python 2
         return '{}_{}'.format(self.pk, self.date)
 

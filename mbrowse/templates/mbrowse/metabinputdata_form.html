@@ -7,4 +7,19 @@
     <a href="{% url "index" %}"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
     / <a href="{% url "general_summary" %}"> MBrowse Summary</a>
 {% endblock sb_admin_breadcrumb %}
-{% block panel_title %}{% endblock panel_title %}
+{% block sb_admin_breadcrumb_active %} /Add Metabolomics Dataset LC-MS(/MS) {% endblock sb_admin_breadcrumb_active %}
+{% block panel_title %} Upload {% endblock panel_title %}
+
+{% block preamble %}
+
+<p>
+Uploading a LC-MS/MS dataset manually is a two step process
+<ul>
+<li>First upload a file using the standard file upload functionality  <a href="{% url "upload_gfile" %}"> upload general file</a></li>
+<li>Second select the relevant file here to be uploaded as a LC-MS(/MS) dataset</li>
+</ul>
+
+</p>
+<hr>
+
+{% endblock preamble %}

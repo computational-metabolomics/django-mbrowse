@@ -3,6 +3,7 @@ from mbrowse.models import (
     MFile,
     MFileSuffix,
     Run,
+    Polarity,
     SPeakMeta,
     SPeak,
     XCMSFileInfo,
@@ -44,7 +45,7 @@ try:
     xrange
 except NameError:  # python3
     xrange = range
-TEST_MODE = False
+TEST_MODE = True
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
@@ -64,7 +65,7 @@ class LcmsDataTransfer(object):
         self.cpeakgroupmeta_class = CPeakGroupMeta
 
 
-    def set_cpeakgroupmeta(self):
+    def set_cpeakgroupmeta(self, celery_obj):
         CPeakGroupMeta = self.cpeakgroupmeta_class
 
         cpgm = CPeakGroupMeta(metabinputdata=self.md)
@@ -87,8 +88,10 @@ class LcmsDataTransfer(object):
         ###################################
         # the cpeakgroupmet can be update to use an extended cpeakgroupmeta class which contains more infor
         # e.g. Investigation and assay details
-        self.set_cpeakgroupmeta()
-
+        if not self.set_cpeakgroupmeta(celery_obj):
+            # If we can't make the cpeakgroupmeta the following upload can't proceed
+            return 0
+        self.set_polarity()
 
         ###################################
         # Get scan meta info
@@ -216,10 +219,35 @@ class LcmsDataTransfer(object):
         uc = UpdateCannotations(cpgm=self.cpgm)
         uc.update_cannotations(celery_obj=celery_obj, current=95)
         if celery_obj:
-            if celery_obj:
-                celery_obj.update_state(state='SUCCESS',
+            celery_obj.update_state(state='SUCCESS',
                                         meta={'current': 100, 'total': 100,
                                               'status': 'Uploaded LC-MSMS dataset'})
+        return 1
+
+    def set_polarity(self):
+
+        polarities = []
+        for id, m in six.iteritems(self.mfile_d):
+            if m.run.polarity:
+                polarities.append(m.run.polarity)
+
+        polarities = list(set(polarities))
+
+        if 'combination' in polarities:
+            p = Polarity.objects.get(polarity='combination')
+        elif 'unknown' in polarities:
+            p = Polarity.objects.get(polarity='unknown')
+        elif 'positive' in polarities and 'negative' in polarities:
+            p = Polarity.objects.get(polarity='combination')
+        elif 'positive' in polarities:
+            p = Polarity.objects.get(polarity='positive')
+        elif 'negative' in polarities:
+            p = Polarity.objects.get(polarity='positive')
+        else:
+            p = Polarity.objects.get(polarity='unknown')
+
+        self.cpgm.polarity = p
+        self.cpgm.save()
 
 
     def save_xcms_file_info(self):
@@ -263,7 +291,20 @@ class LcmsDataTransfer(object):
             else:
                 # add the file with the most basic of information
                 prefix, suffix = os.path.splitext(fn)
-                run = Run(prefix=prefix)
+
+
+                if re.match('.*(?:_POS_|_POSITIVE_).*',prefix):
+                    polarity_qs = Polarity.objects.filter(polarity='positive')
+                elif re.match('.*(?:_NEG_|_NEGATIVE_).*',prefix):
+                    polarity_qs = Polarity.objects.filter(polarity='positive')
+                else:
+                    polarity_qs = Polarity.objects.filter(polarity='unknown')
+
+                if polarity_qs:
+                    run = Run(prefix=prefix, polarity=polarity_qs[0])
+                else:
+                    run = Run(prefix=prefix)
+
                 run.save()
 
                 mfile = MFile(original_filename=fn, run=run, mfilesuffix=MFileSuffix.objects.filter(suffix=suffix)[0])

@@ -34,6 +34,13 @@ def forwards_func(apps, schema_editor):
     ps.save(using=db_alias)
     ps = Polarity(polarity='positive')
     ps.save(using=db_alias)
+    ps = Polarity(polarity='unknown')
+    ps.save(using=db_alias)
+    ps = Polarity(polarity='combination')
+    ps.save(using=db_alias)
+    ps = Polarity(polarity='NA')
+    ps.save(using=db_alias)
+
 
 
 def reverse_func(apps, schema_editor):
@@ -58,8 +65,11 @@ def reverse_func(apps, schema_editor):
     MsLevel.objects.using(db_alias).filter(ms_level=3).delete()
     MsLevel.objects.using(db_alias).filter(ms_level=4).delete()
 
-    PolaritySearch.objects.using(db_alias).filter(polairty='positive').delete()
-    PolaritySearch.objects.using(db_alias).filter(polairty='negative').delete()
+    Polarity.objects.using(db_alias).filter(polarity='positive').delete()
+    Polarity.objects.using(db_alias).filter(polarity='negative').delete()
+    Polarity.objects.using(db_alias).filter(polarity='unknown').delete()
+    Polarity.objects.using(db_alias).filter(polarity='combination').delete()
+    Polarity.objects.using(db_alias).filter(polarity='NA').delete()
 
 
 class Migration(migrations.Migration):

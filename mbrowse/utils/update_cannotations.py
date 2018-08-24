@@ -38,7 +38,7 @@ class UpdateCannotations(object):
             )
         cpgs = []
         for i, cpgq in enumerate(cpgqs):
-            if i % 500 == 0:
+            if i % 200 == 0:
                 print(i)
                 bulk_update(cpgs)
                 cpgs=[]
@@ -50,7 +50,11 @@ class UpdateCannotations(object):
 
 
             cpg = CPeakGroup.objects.get(pk=cpgq['id'])
-            cpg.best_annotation = cpgq['cannotation__compound__name__max'] if cpgq['cannotation__compound__name__max'] else None
+
+            cpg.best_annotation = CAnnotation.objects.get(
+                                    cpeakgroup_id=cpg.id,
+                                    weighted_score=cpgq['cannotation__weighted_score__max']
+                                  ) if cpgq['cannotation__compound__name__max'] else None
             cpg.best_score =cpgq['cannotation__weighted_score__max']
             cpgs.append(cpg)
 
@@ -58,7 +62,7 @@ class UpdateCannotations(object):
         pmas = ProbmetabAnnotation.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm)
         new_cans = []
         for c, pma in enumerate(pmas):
-            if c % 1000 == 0:
+            if c % 200 == 0:
                 self.cannotation_class.objects.bulk_create(new_cans)
                 new_cans = []
                 if celery_obj:
@@ -89,7 +93,7 @@ class UpdateCannotations(object):
         new_cans = []
         for c, mfa in enumerate(mfas):
 
-            if c % 1000 == 0:
+            if c % 200 == 0:
                 self.cannotation_class.objects.bulk_create(new_cans)
                 new_cans = []
                 if celery_obj:
@@ -121,7 +125,7 @@ class UpdateCannotations(object):
         )
         new_cans = []
         for c, sm in enumerate(sms):
-            if c % 1000 == 0:
+            if c % 200 == 0:
                 self.cannotation_class.objects.bulk_create(new_cans)
                 new_cans = []
                 if celery_obj:
@@ -131,14 +135,14 @@ class UpdateCannotations(object):
 
 
             can = self.cannotation_class.objects.filter(compound_id=sm['library_spectra_meta__inchikey'],
-                                             cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'])
+                                                        cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].spectral_matching_average_score = sm['avg_score']
                 can[0].save()
             else:
                 new_can = self.cannotation_class(cpeakgroup_id=sm['s_peak_meta__cpeak__cpeakgroup'],
-                                  compound_id=sm['library_spectra_meta__inchikey'],
-                                  spectral_matching_average_score=sm['avg_score'])
+                                                 compound_id=sm['library_spectra_meta__inchikey'],
+                                                 spectral_matching_average_score=sm['avg_score'])
                 new_cans.append(new_can)
 
         self.cannotation_class.objects.bulk_create(new_cans)
@@ -156,7 +160,7 @@ class UpdateCannotations(object):
         new_cans = []
         for c, csia in enumerate(csias):
 
-            if c % 1000 == 0:
+            if c % 200 == 0:
                 self.cannotation_class.objects.bulk_create(new_cans)
                 new_cans = []
                 if celery_obj:
@@ -190,7 +194,7 @@ class UpdateCannotations(object):
         else:
             canw = CAnnotationWeight.objects.all()[0]
 
-        for can in self.cannotation_class.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm):
+        for c, can in enumerate(self.cannotation_class.objects.filter(cpeakgroup__cpeakgroupmeta=cpgm)):
             sm_score = can.spectral_matching_average_score if can.spectral_matching_average_score else 0
             ms1_score = can.ms1_average_score if can.ms1_average_score else 0
             csi_score = can.sirius_csifingerid_average_score if can.sirius_csifingerid_average_score else 0
@@ -201,6 +205,12 @@ class UpdateCannotations(object):
                              (csi_score * canw.sirius_csifingerid_weight) + \
                              (metfrag_score * canw.metfrag_weight)
             can.save()
+
+            if c % 200 == 0:
+                if celery_obj:
+                    celery_obj.update_state(state='RUNNING',
+                                            meta={'current': current, 'total': 100,
+                                                  'status': 'Calculating overall score  {}'.format(c)})
 
     def rank_groups(self, cpgm, celery_obj=None, current=None):
 
@@ -215,7 +225,7 @@ class UpdateCannotations(object):
             if start:
                 start=False
 
-            if c % 1000 == 0:
+            if c % 200 == 0:
                 bulk_update(update_cans)
                 update_cans = []
                 if celery_obj:
