@@ -1,6 +1,7 @@
 import django_tables2 as tables
 from mbrowse.models import MFile
 from gfiles.tables import GFileTable
+from gfiles.utils.icons import EYE
 from mbrowse.models import (
     CPeakGroup,
     CPeakGroupMeta,
@@ -17,6 +18,8 @@ from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django_tables2.utils import A
 from django_tables2_column_shifter.tables import ColumnShiftTable
+from django.utils.safestring import mark_safe
+
 
 class NumberColumn4(tables.Column):
     def render(self, value):
@@ -39,6 +42,7 @@ class MFileTable(GFileTable):
 
 
 
+
 class CPeakGroupTable(ColumnShiftTable):
     # dma_c = tables.TemplateColumn("{{ value|safe }}")
     # dma_name_c = tables.TemplateColumn("{{ value|safe }}")
@@ -56,16 +60,19 @@ class CPeakGroupTable(ColumnShiftTable):
     rtmax = NumberColumn2()
     best_score = NumberColumn2()
 
-    eics = tables.LinkColumn('eics', verbose_name='View EICs',
-                                            text='view', args=[A('id')])
+    eics = tables.LinkColumn('eics', verbose_name='EICs',
+                                            text=EYE, args=[A('id')])
 
-    frag4feature = tables.LinkColumn('frag4feature', verbose_name='View fragmentation',
-                                            text='view', args=[A('id')])
+    frag4feature = tables.LinkColumn('frag4feature', verbose_name='Fragmentation',
+                                            text=EYE, args=[A('id')])
 
-    canns = tables.LinkColumn('canns', verbose_name='View annotations',
-                                            text='view', args=[A('id')])
+    canns = tables.LinkColumn('canns', verbose_name='Annotations',
+                                            text=EYE, args=[A('id')])
 
-
+    def get_column_default_show(self):
+        self.column_default_show = ['id', 'idi', 'mzmed', 'rtmed', 'isotopes', 'adducts', 'best_annotation',
+                                    'best_score', 'eics', 'frag4feature', 'canns']
+        return super(CPeakGroupTable, self).get_column_default_show()
 
     class Meta:
 
@@ -82,8 +89,8 @@ class CPeakGroupTable(ColumnShiftTable):
 
 
 class CPeakGroupMetaTable(ColumnShiftTable):
-    c_peak_group_table = tables.LinkColumn('cpeakgroup_summary', verbose_name='View grouped peaklist',
-                                            text='view', args=[A('id')])
+    c_peak_group_table = tables.LinkColumn('cpeakgroup_summary', verbose_name=EYE,
+                                            text=EYE, args=[A('id')])
 
 
 
@@ -97,7 +104,7 @@ class CPeakGroupMetaTable(ColumnShiftTable):
 
 
 class CAnnotationTable(ColumnShiftTable):
-    inputdata = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata', verbose_name='Input Dataset')
+    inputdata = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata.name', verbose_name='Input Dataset')
     compound_name = tables.Column(accessor='compound.name', verbose_name='Compound name')
     pubchem_ids = tables.Column(accessor='compound.pubchem_id', verbose_name='PubChem cid(s)')
     kegg_ids = tables.Column(accessor='compound.kegg_id', verbose_name='KEGG cid(s)')
@@ -144,7 +151,7 @@ class SPeakTable(ColumnShiftTable):
 
 class SpectralMatchingTable(ColumnShiftTable):
     smatch = tables.LinkColumn('smatch', verbose_name='View Match',
-                                            text='view', args=[A('id')])
+                                            text=EYE, args=[A('id')])
 
 
     class Meta:

@@ -229,9 +229,11 @@ class LcmsDataTransfer(object):
         polarities = []
         for id, m in six.iteritems(self.mfile_d):
             if m.run.polarity:
-                polarities.append(m.run.polarity)
+                polarities.append(m.run.polarity.polarity.lower())
 
         polarities = list(set(polarities))
+
+        print(polarities)
 
         if 'combination' in polarities:
             p = Polarity.objects.get(polarity='combination')
@@ -242,10 +244,13 @@ class LcmsDataTransfer(object):
         elif 'positive' in polarities:
             p = Polarity.objects.get(polarity='positive')
         elif 'negative' in polarities:
-            p = Polarity.objects.get(polarity='positive')
+            p = Polarity.objects.get(polarity='negative')
         else:
             p = Polarity.objects.get(polarity='unknown')
 
+        print(p)
+        print(self.cpgm)
+        print(self.cpgm.polarity)
         self.cpgm.polarity = p
         self.cpgm.save()
 
