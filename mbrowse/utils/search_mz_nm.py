@@ -270,7 +270,7 @@ def search_mz_scans(target_mass, ppm_target_tolerance, ppm_library_tolerance, po
                 HAVING ({target_high}>= mzmed_low) AND (mzmed_high >= {target_low})
                 
 
-                ORDER BY mbrowse_cpeakgroup.id, rank;
+                ORDER BY mbrowse_cpeakgroup.id;
                 '''.format(ppm=ppm_library_tolerance,
                            target_high=target_high,
                            target_low=target_low,

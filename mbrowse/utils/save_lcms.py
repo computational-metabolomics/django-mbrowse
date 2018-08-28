@@ -30,6 +30,7 @@ from mbrowse.models import (
 from bulk_update.helper import bulk_update
 from django.db.models import Count, Avg, F, Max
 import sqlite3
+from sqlite3 import OperationalError
 import numpy as np
 from pubchempy import PubChemHTTPError
 from django.db import connection
@@ -1069,10 +1070,14 @@ def get_pubchem_sqlite_local(pubchem_id):
     conn = sqlite3.connect(settings.METAB_PUBCHEM_SQLITE_PTH)
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM  pubchem_compounds WHERE cid={}'.format(pubchem_id))
-    names = sql_column_names(cursor)
+    try:
+        cursor.execute('SELECT * FROM  pubchem_compounds WHERE cid={}'.format(pubchem_id))
+        names = sql_column_names(cursor)
+        rows = cursor.fetchall()
 
-    rows = cursor.fetchall()
+    except OperationalError as e:
+        print(e)
+        return ''
 
     if rows:
         # should only be 1 entrie per cid so take first row

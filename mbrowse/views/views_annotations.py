@@ -60,7 +60,10 @@ class CAnnotationDownloadView(LoginRequiredMixin, CreateView):
     form_class = CAnnotationDownloadForm
 
     def form_valid(self, form):
+
         obj = form.save()
+        obj.user = self.request.user
+        obj.save()
 
         result = download_cannotations_task.delay(obj.pk, self.request.user.id)
         self.request.session['result'] = result.id

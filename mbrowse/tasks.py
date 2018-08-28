@@ -8,7 +8,7 @@ from mbrowse.utils.search_mz_nm import search_mz, search_nm
 from mbrowse.utils.search_frag import search_frag
 from mbrowse.utils.save_lcms import LcmsDataTransfer
 from mbrowse.utils.update_cannotations import UpdateCannotations
-from mbrowse.utils.download_annotations import download_cannotations
+from mbrowse.utils.download_annotations import DownloadAnnotations
 from gfiles.models import TrackTasks
 
 from django.urls import reverse
@@ -98,7 +98,8 @@ def download_cannotations_task(self, pk, userid):
     tt.save()
 
     # perform function
-    download_cannotations(pk, self)
+    dam = DownloadAnnotations()
+    dam.download_cannotations(pk, self)
 
     # save successful result
     tt.result = reverse('canns_download_result')
