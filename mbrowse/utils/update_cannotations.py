@@ -51,11 +51,11 @@ class UpdateCannotations(object):
 
             cpg = CPeakGroup.objects.get(pk=cpgq['id'])
 
-            cpg.best_annotation = CAnnotation.objects.get(
+            cpg.best_annotation = CAnnotation.objects.filter(
                                     cpeakgroup_id=cpg.id,
                                     weighted_score=cpgq['cannotation__weighted_score__max']
-                                  ) if cpgq['cannotation__compound__name__max'] else None
-            cpg.best_score =cpgq['cannotation__weighted_score__max']
+                                  )[0] if cpgq['cannotation__compound__name__max'] else None
+            cpg.best_score = cpgq['cannotation__weighted_score__max']
             cpgs.append(cpg)
 
     def add_probmetab_canns(self, cpgm, celery_obj=None, current=None):
