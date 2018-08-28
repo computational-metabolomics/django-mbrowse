@@ -45,7 +45,7 @@ try:
     xrange
 except NameError:  # python3
     xrange = range
-TEST_MODE = True
+TEST_MODE = False
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
