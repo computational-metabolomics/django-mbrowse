@@ -5,6 +5,11 @@ import pubchempy as pcp
 from mbrowse.models import Compound
 import uuid
 from bioservices import *
+import sys
+if sys.version_info[0] < 3:
+    from urllib2 import URLError
+else:
+    from urllib.error import URLError
 
 def get_pubchem_compound(in_str, type='inchikey'):
     # pubchem stores the SID not the CID!!!! means we can't use it like this
@@ -17,6 +22,9 @@ def get_pubchem_compound(in_str, type='inchikey'):
         print(e)
         return 0
     except pcp.TimeoutError as e:
+        print(e)
+        return 0
+    except URLError as e:
         print(e)
         return 0
 
