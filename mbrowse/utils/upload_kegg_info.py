@@ -27,6 +27,9 @@ def get_pubchem_compound(in_str, type='inchikey'):
     except URLError as e:
         print(e)
         return 0
+    except pcp.PubChemHTTPError as e:
+        print(e)
+        return 0
 
     return pccs
 
