@@ -982,6 +982,8 @@ class LcmsDataTransfer(object):
                 continue
 
             comps = []
+            # the pubchemids are unreliable from here (perhaps some are SID?) need to replace using a lookup to either
+            # local database or REST call on the inchi provided from the output of sirius
             pubchem_ids = row[names['pubchemids']].split(';')
 
             for pubchem_id in pubchem_ids:

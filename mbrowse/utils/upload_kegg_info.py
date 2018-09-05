@@ -85,11 +85,12 @@ def get_kegg_compound(cid):
             name = mtch.group(1).strip()
             kegg_compound['name'] = name
 
-        mtch = re.search('.*PubChem(?::|\s)(.*)', detail)
-        if mtch:
-            pubchem_id = mtch.group(1).strip()
-            full_str = re.sub("\s+", ",", pubchem_id)
-            kegg_compound['pubchem_id'] = full_str
+        # this is getting the SID (substance ID not the compound ID i.e. CID)
+        # mtch = re.search('.*PubChem(?::|\s)(.*)', detail)
+        # if mtch:
+        #     pubchem_id = mtch.group(1).strip()
+        #     full_str = re.sub("\s+", ",", pubchem_id)
+        #     kegg_compound['pubchem_id'] = full_str
 
         mtch = re.search('.*ChEBI(?::|\s)(.*)', detail)
         if mtch:

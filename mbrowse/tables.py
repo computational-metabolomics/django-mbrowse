@@ -104,8 +104,10 @@ class CPeakGroupMetaTable(ColumnShiftTable):
 
 
 class CAnnotationTable(ColumnShiftTable):
+    inputdata_id = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata.id', verbose_name='Input Dataset (id)')
     inputdata = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata.name', verbose_name='Input Dataset')
     compound_name = tables.Column(accessor='compound.name', verbose_name='Compound name')
+    inchikey = tables.Column(accessor='compound.inchikey_id', verbose_name='InChiKey')
     pubchem_ids = tables.Column(accessor='compound.pubchem_id', verbose_name='PubChem cid(s)')
     kegg_ids = tables.Column(accessor='compound.kegg_id', verbose_name='KEGG cid(s)')
     mzmed = NumberColumn4(accessor='cpeakgroup.mzmed',verbose_name='mzmed')
