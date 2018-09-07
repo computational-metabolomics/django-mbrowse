@@ -52,6 +52,3 @@ class DownloadAnnotations(object):
         canns_download_result.annotation_file.save(fnm, File(open(tmp_pth)))
 
         return canns_download_result
-
-
-
