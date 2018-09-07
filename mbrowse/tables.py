@@ -49,9 +49,12 @@ class CPeakGroupTable(ColumnShiftTable):
     # workflow_stage_code = tables.TemplateColumn("{{ value|safe }}")
     # all_annotations = tables.TemplateColumn("{{ value|safe }}")
     # # view_data = ButtonColumn()
-    # view_data = tables.LinkColumn('peakplot', text='view peaks', args=[A('id'), 1])
-    # view_annotations = tables.LinkColumn('annotations', text='view annotations', args=[A('id')])
-    # best_score = tables.TemplateColumn("{{ value|safe|floatformat:'3' }}")
+
+    inputdata_id = tables.Column(accessor='cpeakgroupmeta.metabinputdata.id', verbose_name='Input Dataset (id)')
+    inputdata = tables.Column(accessor='cpeakgroupmeta.metabinputdata.name', verbose_name='Input Dataset')
+    polarity = tables.Column(accessor='cpeakgroupmeta.polarity', verbose_name='Polarity')
+
+
     mzmed = NumberColumn4()
     mzmax = NumberColumn4()
     mzmin = NumberColumn4()
@@ -106,6 +109,7 @@ class CPeakGroupMetaTable(ColumnShiftTable):
 class CAnnotationTable(ColumnShiftTable):
     inputdata_id = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata.id', verbose_name='Input Dataset (id)')
     inputdata = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.metabinputdata.name', verbose_name='Input Dataset')
+    polarity = tables.Column(accessor='cpeakgroup.cpeakgroupmeta.polarity', verbose_name='Polarity')
     compound_name = tables.Column(accessor='compound.name', verbose_name='Compound name')
     inchikey = tables.Column(accessor='compound.inchikey_id', verbose_name='InChiKey')
     pubchem_ids = tables.Column(accessor='compound.pubchem_id', verbose_name='PubChem cid(s)')

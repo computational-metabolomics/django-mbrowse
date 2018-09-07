@@ -60,8 +60,6 @@ class CPeakGroupListView(LoginRequiredMixin, SingleTableMixin, FilterView):
         return CPeakGroup.objects.filter(cpeakgroupmeta_id= self.kwargs.get('cid'))
 
 
-
-
 class CPeakGroupMetaListView(LoginRequiredMixin, SingleTableMixin, ListView):
     '''
     '''

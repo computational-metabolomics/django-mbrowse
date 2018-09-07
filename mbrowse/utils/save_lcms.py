@@ -46,6 +46,13 @@ try:
     xrange
 except NameError:  # python3
     xrange = range
+
+import sys
+if sys.version_info[0] < 3:
+    from urllib2 import URLError
+else:
+    from urllib.error import URLError
+
 TEST_MODE = False
 
 class LcmsDataTransfer(object):
@@ -1174,6 +1181,10 @@ def create_pubchem_comp(pc_match, kegg_id=None):
     except PubChemHTTPError as e:
         name = 'unknown name'
         other_names = ''
+    except URLError as e:
+        name = 'unknown name'
+        other_names = ''
+
 
     comp = Compound(inchikey_id=pc_match.inchikey,
                     systematic_name=pc_match.iupac_name,
