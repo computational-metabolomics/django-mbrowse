@@ -12,6 +12,14 @@ class DownloadAnnotations(object):
     annotation_model_class = CAnnotation
     annotation_table_class = CAnnotationTable
 
+    def get_items(self, cann_down):
+        if cann_down.rank:
+            canns = self.annotation_model_class.objects.filter(rank__lte=cann_down.rank)
+        else:
+            canns = self.annotation_model_class.objects.all()
+
+        return canns
+
     def download_cannotations(self, pk, celery_obj):
 
         cann_down_qs = CAnnotationDownload.objects.filter(pk=pk)
@@ -22,10 +30,7 @@ class DownloadAnnotations(object):
         else:
             cann_down = cann_down_qs[0]
 
-        if cann_down.rank:
-            canns = self.annotation_model_class.objects.filter(rank__lte=cann_down.rank)
-        else:
-            canns = self.annotation_model_class.objects.all()
+        canns = self.get_items(cann_down)
 
         canns_table = self.annotation_table_class(canns)
 
