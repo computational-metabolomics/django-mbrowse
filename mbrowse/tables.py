@@ -127,9 +127,10 @@ class CAnnotationTable(ColumnShiftTable):
     class Meta:
 
         model = CAnnotation
+        template_name = 'django_tables2/django_tables2/semantic.html'
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        # attrs = {"class": "paleblue", }
 
 
 class EicTable(ColumnShiftTable):
