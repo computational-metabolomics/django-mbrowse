@@ -36,7 +36,7 @@ class MFileTable(GFileTable):
 
     class Meta:
         model = MFile
-        attrs = {'class': 'paleblue'}
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
         template = 'django_tables2/bootstrap.html'
         fields = ('id','filename', 'filesuffix')
 
@@ -82,7 +82,7 @@ class CPeakGroupTable(ColumnShiftTable):
         model = CPeakGroup
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-dark table-bordered table-striped table-condensed table-hover", }
         # fields = ('mzmed', 'all_cpeak')
         # f = ('id', 'dma_c', 'dma_name_c',  'workflow_stage_code', 'mzmed', 'rtmed', 'isotopes', 'adducts', 'pcgroup', 'all_annotations',
         #      'best_score', 'view_data', 'view_annotations')
@@ -102,7 +102,7 @@ class CPeakGroupMetaTable(ColumnShiftTable):
         model = CPeakGroupMeta
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 
@@ -130,7 +130,7 @@ class CAnnotationTable(ColumnShiftTable):
         template_name = 'django_tables2/django_tables2/semantic.html'
         # add class="paleblue" to <table> tag
 
-        # attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 class EicTable(ColumnShiftTable):
@@ -141,7 +141,7 @@ class EicTable(ColumnShiftTable):
         fields = ('scan', 'idi', 'intensity', 'cpeak_id')
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 class SPeakTable(ColumnShiftTable):
@@ -152,7 +152,7 @@ class SPeakTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 
@@ -167,7 +167,7 @@ class SpectralMatchingTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 
@@ -186,7 +186,7 @@ class SearchMzResultTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 class SearchNmResultTable(ColumnShiftTable):
@@ -198,7 +198,7 @@ class SearchNmResultTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 class SearchFragResultTable(ColumnShiftTable):
@@ -210,7 +210,7 @@ class SearchFragResultTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 class CAnnotationDownloadResultTable(ColumnShiftTable):
@@ -222,7 +222,7 @@ class CAnnotationDownloadResultTable(ColumnShiftTable):
         fields = ('id', 'annotation_file', 'created', 'username')
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "paleblue", }
+        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
 
 
 
