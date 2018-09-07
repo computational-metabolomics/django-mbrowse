@@ -20,7 +20,8 @@ def search_mz(smp_id, celery_obj):
     masses = smp.masses.split('\r\n')
     # rules = [i['id'] for i in list(smp.adduct_rule.all().values('id'))]
     polarities = [i['id'] for i in list(smp.polarity.all().values('id'))]
-    ms_levels = [i['id'] for i in list(smp.ms_level.all().values('id'))]
+    ms_levels_ids = [i['id'] for i in list(smp.ms_level.all().values('id'))]
+    ms_levels = [i['ms_level'] for i in list(smp.ms_level.all().values('ms_level'))]
     ppm_target_tolerance = smp.ppm_target_tolerance
     ppm_library_tolerance = smp.ppm_library_tolerance
 
@@ -78,7 +79,7 @@ def search_mz(smp_id, celery_obj):
                                                       'status': 'Searching for masses (>ms2 scans)'})
                 c += 1
                 hc += search_mz_scans(float(m), float(ppm_target_tolerance), float(ppm_library_tolerance), polarities,
-                                ms_levels,
+                                ms_levels_ids,
                                 writer, first)
                 first = False
         if hc:
