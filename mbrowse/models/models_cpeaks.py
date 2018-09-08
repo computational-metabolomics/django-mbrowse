@@ -83,12 +83,29 @@ class CPeakGroup(models.Model):
 
 
 
+
 class CPeakGroupMeta(models.Model):
     date = models.DateField(auto_now_add=True)
     metabinputdata = models.ForeignKey(MetabInputData, on_delete=models.CASCADE)
     polarity = models.ForeignKey('Polarity', on_delete=models.CASCADE, null=True)
+
     def __str__(self):  # __unicode__ on Python 2
         return '{}_{}'.format(self.pk, self.date)
+
+    def delete(self, *args, **kwargs):
+        # delete speakmeta
+        spm = SPeakMeta.objects.filter(cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
+        spm.delete()
+
+        # delete cpeaks
+        cp = CPeak.objects.filter(cpeakgroup__cpeakgroupmeta=self.pk)
+        cp.delete()
+
+        # delete cpeakgroups
+        cpg = CPeakGroup.objects.filter(cpeakgroupmeta=self.pk)
+        cpg.delete()
+
+        super(CPeakGroupMeta, self).delete(*args, **kwargs)
 
 
 

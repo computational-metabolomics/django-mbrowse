@@ -67,6 +67,9 @@ class CPeakGroupMetaListView(LoginRequiredMixin, SingleTableMixin, ListView):
     model = CPeakGroupMeta
     template_name = 'mbrowse/cpeakmeta_summary.html'
 
+
+
+
 class Frag4FeatureListView(LoginRequiredMixin, SingleTableMixin, ListView):
     '''
     '''
