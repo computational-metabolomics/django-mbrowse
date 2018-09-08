@@ -805,6 +805,10 @@ class LcmsDataTransfer(object):
 
             UID = row[names['UID']]
 
+            if UID=='UID':
+                # duplicate header name
+                continue
+
             uid_l = UID.split('-')
             pid = uid_l[2]
 
