@@ -6,6 +6,12 @@ from gfiles.models import GenericFile
 from .models_general import MFile, MetabInputData, AdductRule
 from .models_speaks import SPeakMeta
 
+
+try:
+    from itertools import zip_longest as zip_longest
+except:
+    from itertools import izip_longest as zip_longest
+
 ################################################################################################################
 # Chromatography (LC-MS, GC-MS) peak organisation (cpeak)
 ################################################################################################################
@@ -81,6 +87,18 @@ class CPeakGroup(models.Model):
         return '{} {}'.format(self.id, self.idi)
 
 
+def grouper(n, iterable, fillvalue=None):
+    args = [iter(iterable)] * n
+    return zip_longest(fillvalue=fillvalue, *args)
+
+
+def big_delete(qs, model_class, n=10):
+    pks = list(qs.values_list('pk', flat=True))
+
+    pk_blocks = list(grouper(n, pks))
+
+    [model_class.objects.filter(pk__in=block).delete() for block in pk_blocks]
+
 
 
 
@@ -95,15 +113,15 @@ class CPeakGroupMeta(models.Model):
     def delete_dependents(self):
         # delete speakmeta
         spm = SPeakMeta.objects.filter(cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
-        spm.delete()
+        big_delete(spm, SPeakMeta)
 
         # delete cpeaks
         cp = CPeak.objects.filter(cpeakgroup__cpeakgroupmeta=self.pk)
-        cp.delete()
+        big_delete(cp, CPeak)
 
         # delete cpeakgroups
         cpg = CPeakGroup.objects.filter(cpeakgroupmeta=self.pk)
-        cpg.delete()
+        big_delete(cpg, CPeakGroup)
 
 
 
