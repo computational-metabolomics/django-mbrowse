@@ -92,7 +92,7 @@ class CPeakGroupMeta(models.Model):
     def __str__(self):  # __unicode__ on Python 2
         return '{}_{}'.format(self.pk, self.date)
 
-    def delete(self, *args, **kwargs):
+    def delete_dependents(self):
         # delete speakmeta
         spm = SPeakMeta.objects.filter(cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
         spm.delete()
@@ -104,8 +104,6 @@ class CPeakGroupMeta(models.Model):
         # delete cpeakgroups
         cpg = CPeakGroup.objects.filter(cpeakgroupmeta=self.pk)
         cpg.delete()
-
-        super(CPeakGroupMeta, self).delete(*args, **kwargs)
 
 
 
