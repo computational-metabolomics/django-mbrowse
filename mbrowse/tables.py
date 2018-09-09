@@ -20,6 +20,7 @@ from django_tables2.utils import A
 from django_tables2_column_shifter.tables import ColumnShiftTable
 from django.utils.safestring import mark_safe
 
+TABLE_CLASS = "mogi table-bordered table-striped table-condensed table-hover"
 
 class NumberColumn4(tables.Column):
     def render(self, value):
@@ -36,7 +37,7 @@ class MFileTable(GFileTable):
 
     class Meta:
         model = MFile
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
         template = 'django_tables2/bootstrap.html'
         fields = ('id','filename', 'filesuffix')
 
@@ -52,7 +53,7 @@ class CPeakGroupTable(ColumnShiftTable):
 
     inputdata_id = tables.Column(accessor='cpeakgroupmeta.metabinputdata.id', verbose_name='Input Dataset (id)')
     inputdata = tables.Column(accessor='cpeakgroupmeta.metabinputdata.name', verbose_name='Input Dataset')
-    polarity = tables.Column(accessor='cpeakgroupmeta.polarity', verbose_name='Polarity')
+    polarity = tables.Column(accessor='cpeakgroupmeta.polarity', verbose_name='Polarity SSSSS')
 
 
     mzmed = NumberColumn4()
@@ -82,7 +83,9 @@ class CPeakGroupTable(ColumnShiftTable):
         model = CPeakGroup
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-dark table-bordered table-striped table-condensed table-hover", }
+        # attrs = {"class": 'mogi' , }
+        attrs = {"class": TABLE_CLASS}
+
         # fields = ('mzmed', 'all_cpeak')
         # f = ('id', 'dma_c', 'dma_name_c',  'workflow_stage_code', 'mzmed', 'rtmed', 'isotopes', 'adducts', 'pcgroup', 'all_annotations',
         #      'best_score', 'view_data', 'view_annotations')
@@ -102,7 +105,7 @@ class CPeakGroupMetaTable(ColumnShiftTable):
         model = CPeakGroupMeta
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 
@@ -130,7 +133,7 @@ class CAnnotationTable(ColumnShiftTable):
         template_name = 'django_tables2/django_tables2/semantic.html'
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 class EicTable(ColumnShiftTable):
@@ -141,7 +144,7 @@ class EicTable(ColumnShiftTable):
         fields = ('scan', 'idi', 'intensity', 'cpeak_id')
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 class SPeakTable(ColumnShiftTable):
@@ -152,7 +155,7 @@ class SPeakTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 
@@ -167,7 +170,7 @@ class SpectralMatchingTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 
@@ -186,7 +189,7 @@ class SearchMzResultTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 class SearchNmResultTable(ColumnShiftTable):
@@ -198,7 +201,7 @@ class SearchNmResultTable(ColumnShiftTable):
 
         # add class="paleblue" to <table> tag
 
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 class SearchFragResultTable(ColumnShiftTable):
@@ -209,8 +212,7 @@ class SearchFragResultTable(ColumnShiftTable):
         model = SearchFragResult
 
         # add class="paleblue" to <table> tag
-
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 class CAnnotationDownloadResultTable(ColumnShiftTable):
@@ -221,8 +223,7 @@ class CAnnotationDownloadResultTable(ColumnShiftTable):
         model = CAnnotationDownloadResult
         fields = ('id', 'annotation_file', 'created', 'username')
         # add class="paleblue" to <table> tag
-
-        attrs = {"class": "table table-bordered table-striped table-condensed table-hover", }
+        attrs = {"class": TABLE_CLASS}
 
 
 
