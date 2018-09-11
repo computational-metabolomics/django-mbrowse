@@ -80,6 +80,7 @@ def save_lcms_data_task(self, pk, userid):
     tt.save()
 
     # run function
+    print('SAVE LCMS DATA')
     lcms_data_transfer = LcmsDataTransfer(pk, None)
     lcms_data_transfer.transfer(celery_obj=self)
 
