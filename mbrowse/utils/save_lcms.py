@@ -84,6 +84,8 @@ class LcmsDataTransfer(object):
 
         self.cpgm = cpgm
 
+        return 1
+
     def transfer(self, celery_obj=None):
         ###################################
         # Get map of filename-to-class
@@ -952,7 +954,7 @@ class LcmsDataTransfer(object):
 
         ProbmetabAnnotation.objects.bulk_create(matches)
 
-    def save_sirius_csifingerid(self, celery_obj):
+    def save_sirius_csifingerid(self, celery_obj, csi_speed=True):
         md = self.md
         cursor = self.cursor
 
@@ -972,9 +974,8 @@ class LcmsDataTransfer(object):
         meta.save()
         comp_d = {}
         for i, row in enumerate(cursor):
-
             UID = row[names['UID']]
-            if UID=='UID':
+            if UID == 'UID':
                 continue
 
             uid_l = UID.split('-')
@@ -985,42 +986,55 @@ class LcmsDataTransfer(object):
 
             if celery_obj and i % 500 == 0:
                 celery_obj.update_state(state='RUNNING',
-                                            meta={'current': 80, 'total': 100,
-                                                  'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
+                                        meta={'current': 80, 'total': 100,
+                                              'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
-            if i % 500 == 0:
-                update_csifingerid(comp_d, matches)
-                matches = []
+            if not csi_speed:
 
-            if float(row[names['Rank']]) > 6:
-                continue
+                if celery_obj and i % 500 == 0:
+                    celery_obj.update_state(state='RUNNING',
+                                                meta={'current': 80, 'total': 100,
+                                                      'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
-            comps = []
-            # the pubchemids are unreliable from here (perhaps some are SID?) need to replace using a lookup to either
-            # local database or REST call on the inchi provided from the output of sirius
-            pubchem_ids = row[names['pubchemids']].split(';')
+                if i % 500 == 0:
+                    update_csifingerid(comp_d, matches)
+                    matches = []
 
-            for pubchem_id in pubchem_ids:
-                comp_qs = Compound.objects.filter(pubchem_id__regex='(^|.*,)({})(,.*|$)'.format(pubchem_id))
-                if comp_qs:
-                    comps.append(comp_qs[0])
+                if float(row[names['Rank']]) > 6:
                     continue
 
-                comp_search = get_pubchem_sqlite_local(pubchem_id)
+                comps = []
+                # the pubchemids are unreliable from here (perhaps some are SID?) need to replace using a lookup to either
+                # local database or REST call on the inchi provided from the output of sirius
+                pubchem_ids = row[names['pubchemids']].split(';')
 
-                if comp_search:
-                    comps.append(comp_search)
-                else:
-                    pc_matches = get_pubchem_compound(pubchem_id, 'cid')
-                    if pc_matches:
-                        if len(pc_matches) > 1:
-                            print('More than 1 entry for the compound id! should not happen!')
-                        pc_match = pc_matches[0]
-                        comp = create_pubchem_comp(pc_match)
+                for pubchem_id in pubchem_ids:
+                    comp_qs = Compound.objects.filter(pubchem_id__regex='(^|.*,)({})(,.*|$)'.format(pubchem_id))
+                    if comp_qs:
+                        comps.append(comp_qs[0])
+                        continue
 
-                        comps.append(comp)
+                    comp_search = get_pubchem_sqlite_local(pubchem_id)
+
+                    if comp_search:
+                        comps.append(comp_search)
                     else:
-                        print('No matching pubchemid')
+                        pc_matches = get_pubchem_compound(pubchem_id, 'cid')
+                        if pc_matches:
+                            if len(pc_matches) > 1:
+                                print('More than 1 entry for the compound id! should not happen!')
+                            pc_match = pc_matches[0]
+                            comp = create_pubchem_comp(pc_match)
+
+                            comps.append(comp)
+                        else:
+                            print('No matching pubchemid')
+                comp_d[i + 1] = comps
+            else:
+
+                if i % 500 == 0:
+                    CSIFingerIDAnnotation.objects.bulk_create(matches)
+                    matches = []
 
             match = CSIFingerIDAnnotation(idi=i + 1,
                                           s_peak_meta_id=speakmeta_d[int(pid)],
@@ -1034,14 +1048,15 @@ class LcmsDataTransfer(object):
                                           csifingeridmeta=meta
                                           )
             matches.append(match)
-            comp_d[i+1] = comps
+
             # match.compound.add(*comps)
-
-
 
             speaks.append(speakmeta_d[int(pid)])
 
-        update_csifingerid(comp_d, matches)
+        if csi_speed:
+            CSIFingerIDAnnotation.objects.bulk_create(matches)
+        else:
+            update_csifingerid(comp_d, matches)
 
         updated_anns = []
         # get ranked score

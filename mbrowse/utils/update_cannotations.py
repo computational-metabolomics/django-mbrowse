@@ -21,8 +21,8 @@ class UpdateCannotations(object):
         cpgm = self.cpgm
         self.add_probmetab_canns(cpgm, celery_obj=celery_obj, current=current)
         self.add_metfrag_canns(cpgm, celery_obj=celery_obj, current=current)
-        self.add_csi_canns(cpgm, celery_obj=celery_obj, current=current)
         self.add_sm_canns(cpgm, celery_obj=celery_obj, current=current)
+        self.add_csi_canns(cpgm, celery_obj=celery_obj, current=current)
         self.weighted_score(cpgm, celery_obj=celery_obj, current=current)
         self.update_best_match(cpgm, celery_obj=celery_obj, current=current)
         self.rank_groups(cpgm, celery_obj=celery_obj, current=current)
@@ -149,14 +149,26 @@ class UpdateCannotations(object):
 
 
 
-    def add_csi_canns(self, cpgm, celery_obj=None, current=None):
-        csias = CSIFingerIDAnnotation.objects.filter(s_peak_meta__cpeak__cpeakgroup__cpeakgroupmeta = cpgm
-            ).values(
-                'compound',
-                's_peak_meta__cpeak__cpeakgroup',
-            ).annotate(
-                avg_score=Avg('rank_score')
-            )
+    def add_csi_canns(self, cpgm, celery_obj=None, current=None, csi_speed=True):
+        if csi_speed:
+            csias = CSIFingerIDAnnotation.objects.filter(s_peak_meta__cpeak__cpeakgroup__cpeakgroupmeta = cpgm
+                        ).values(
+                            's_peak_meta__cpeak__cpeakgroup',
+                            'inchikey2d'
+                        ).annotate(
+                            avg_score=Avg('rank_score')
+                        )
+
+        else:
+            csias = CSIFingerIDAnnotation.objects.filter(s_peak_meta__cpeak__cpeakgroup__cpeakgroupmeta = cpgm
+                        ).values(
+                            'compound',
+                            's_peak_meta__cpeak__cpeakgroup',
+                        ).annotate(
+                            avg_score=Avg('rank_score')
+                        )
+
+
         new_cans = []
         for c, csia in enumerate(csias):
 
@@ -168,16 +180,25 @@ class UpdateCannotations(object):
                                         meta={'current': current, 'total': 100,
                                               'status': 'Update CSIFingerID  {}'.format(c)})
 
-
-
-            can = self.cannotation_class.objects.filter(compound_id=csia['compound'], cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
+            if csi_speed:
+                can = self.cannotation_class.objects.filter(compound__inchikey_id__regex='{}-.*'.format(csia['inchikey2d']),
+                                                            cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
+            else:
+                can = self.cannotation_class.objects.filter(compound_id=csia['compound'],
+                                                            cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'])
             if can:
                 can[0].sirius_csifingerid_average_score = csia['avg_score']
                 can[0].save()
             else:
-                new_can = self.cannotation_class(cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'],
+                if csi_speed:
+                    # don't bother adding the Compound if we don't find it in other annotation analysis (to save time)
+                    new_can = self.cannotation_class(cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'],
+                                  sirius_csifingerid_average_score=csia['avg_score'])
+                else:
+                    new_can = self.cannotation_class(cpeakgroup_id=csia['s_peak_meta__cpeak__cpeakgroup'],
                                   compound_id=csia['compound'],
                                   sirius_csifingerid_average_score=csia['avg_score'])
+
                 new_cans.append(new_can)
 
         self.cannotation_class.objects.bulk_create(new_cans)
