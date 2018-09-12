@@ -5,7 +5,7 @@ from django.db import models
 from gfiles.models import GenericFile
 from .models_general import MFile, MetabInputData, AdductRule
 from .models_speaks import SPeakMeta
-
+from .models_annotations import CSIFingerIDAnnotation, MetFragAnnotation
 
 try:
     from itertools import zip_longest as zip_longest
@@ -112,17 +112,30 @@ class CPeakGroupMeta(models.Model):
 
     def delete_dependents(self):
         # delete speakmeta
+        print('delete CSI')
+        csi = CSIFingerIDAnnotation.objects.filter(s_peak_meta__cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
+        big_delete(csi, CSIFingerIDAnnotation, 100)
+
+        print('delete metfrag')
+        mfa = MetFragAnnotation.objects.filter(s_peak_meta__cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
+        big_delete(mfa, MetFragAnnotation, 100)
+
+        print('delete speakmeta')
         spm = SPeakMeta.objects.filter(cpeak__cpeakgroup__cpeakgroupmeta=self.pk)
         big_delete(spm, SPeakMeta)
 
-        # delete cpeaks
+        print('delete cpeaks')
         cp = CPeak.objects.filter(cpeakgroup__cpeakgroupmeta=self.pk)
         big_delete(cp, CPeak)
 
         # delete cpeakgroups
+        print('delete cpeakgroup')
         cpg = CPeakGroup.objects.filter(cpeakgroupmeta=self.pk)
         big_delete(cpg, CPeakGroup)
 
+    def delete(self, *args, **kwargs):
+        self.delete_dependents()
+        super(CPeakGroupMeta, self).delete(*args, **kwargs)
 
 
 class CPeakGroupLink(models.Model):
