@@ -37,7 +37,7 @@ from django.db import connection
 from mbrowse.utils.sql_utils import sql_column_names, check_table_exists_sqlite
 from mbrowse.utils.update_cannotations import UpdateCannotations
 from mbrowse.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound, get_inchi_from_chebi
-
+from django.conf import settings
 import uuid
 from django.conf import settings
 from django.urls import reverse_lazy
@@ -56,7 +56,10 @@ if sys.version_info[0] < 3:
 else:
     from urllib.error import URLError
 
-TEST_MODE = True
+if hasattr(settings, 'TEST_MODE'):
+    TEST_MODE = settings.TEST_MODE
+else:
+    TEST_MODE = False
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
