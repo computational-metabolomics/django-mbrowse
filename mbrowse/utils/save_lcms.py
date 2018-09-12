@@ -833,7 +833,7 @@ class LcmsDataTransfer(object):
                                         meta={'current': 50, 'total': 100,
                                               'status': 'Metfrag upload, annotation {}'.format(i)})
 
-            if len(matches) % 500 == 0:
+            if len(matches) % 100 == 0:
                 print(i)
                 MetFragAnnotation.objects.bulk_create(matches)
                 matches = []
