@@ -957,6 +957,14 @@ class LcmsDataTransfer(object):
 
         ProbmetabAnnotation.objects.bulk_create(matches)
 
+
+    def rank_score_sirius(self, matches):
+        rank = [x.rank for x in matches]
+        rank_score = get_rank_score(rank)
+        for j, match in enumerate(matches):
+            match.rank_score = rank_score[j]
+        return matches
+
     def save_sirius_csifingerid(self, celery_obj, csi_speed=True):
         md = self.md
         cursor = self.cursor
@@ -976,26 +984,21 @@ class LcmsDataTransfer(object):
         meta = CSIFingerIDMeta()
         meta.save()
         comp_d = {}
-        UID = ''
+
         UID_old = ''
-        c = 0
+
         for i, row in enumerate(cursor):
 
             UID = row[names['UID']]
             if UID == 'UID':
                 continue
 
-            if UID == UID_old:
-                end_ann = True
-                rank = [x.rank for x in matches]
-                rank_score = get_rank_score(rank)
-                for j, match in enumerate(matches):
-                    match.rank_score = rank_score[j]
-            else:
-                end_ann = False
-
             uid_l = UID.split('-')
             pid = uid_l[2]
+
+            if row[names['Rank']] > 6:
+                continue
+
             if TEST_MODE:
                 if i > 3000:
                     break
@@ -1005,53 +1008,15 @@ class LcmsDataTransfer(object):
                                         meta={'current': 80, 'total': 100,
                                               'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
-            if not csi_speed:
+            if UID_old and not UID == UID_old:
+                print(i)
+                print(UID_old, UID)
+                matches = self.rank_score_sirius(matches)
+                CSIFingerIDAnnotation.objects.bulk_create(matches)
+                matches = []
 
-                if celery_obj and i % 500 == 0:
-                    celery_obj.update_state(state='RUNNING',
-                                                meta={'current': 80, 'total': 100,
-                                                      'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
-                if i % 500 == 0:
-                    update_csifingerid(comp_d, matches)
-                    matches = []
-
-                if float(row[names['Rank']]) > 6:
-                    continue
-
-                comps = []
-                # the pubchemids are unreliable from here (perhaps some are SID?) need to replace using a lookup to either
-                # local database or REST call on the inchi provided from the output of sirius
-                pubchem_ids = row[names['pubchemids']].split(';')
-
-                for pubchem_id in pubchem_ids:
-                    comp_qs = Compound.objects.filter(pubchem_id__regex='(^|.*,)({})(,.*|$)'.format(pubchem_id))
-                    if comp_qs:
-                        comps.append(comp_qs[0])
-                        continue
-
-                    comp_search = get_pubchem_sqlite_local(pubchem_id)
-
-                    if comp_search:
-                        comps.append(comp_search)
-                    else:
-                        pc_matches = get_pubchem_compound(pubchem_id, 'cid')
-                        if pc_matches:
-                            if len(pc_matches) > 1:
-                                print('More than 1 entry for the compound id! should not happen!')
-                            pc_match = pc_matches[0]
-                            comp = create_pubchem_comp(pc_match)
-
-                            comps.append(comp)
-                        else:
-                            print('No matching pubchemid')
-                comp_d[i + 1] = comps
-            else:
-
-                if c > 50 and end_ann:
-                    CSIFingerIDAnnotation.objects.bulk_create(matches)
-                    matches = []
-                    c = 0
+            UID_old = UID
 
             match = CSIFingerIDAnnotation(idi=i + 1,
                                           s_peak_meta_id=speakmeta_d[int(pid)],
@@ -1069,36 +1034,12 @@ class LcmsDataTransfer(object):
             # match.compound.add(*comps)
 
             speaks.append(speakmeta_d[int(pid)])
-            c+=1
 
-        if csi_speed:
-            CSIFingerIDAnnotation.objects.bulk_create(matches)
-        else:
-            update_csifingerid(comp_d, matches)
 
-        # updated_anns = []
-        # # get ranked score
-        # for i, s in enumerate(speaks):
-        #
-        #     if celery_obj and i % 50 == 0:
-        #         celery_obj.update_state(state='RUNNING',
-        #                             meta={'current': 80, 'total': 100,
-        #                                   'status': 'SIRIUS CSI-FingerID upload, updating ranks {}'.format(i)})
-        #
-        #
-        #     if celery_obj and i % 500 == 0:
-        #         bulk_update(updated_anns)
-        #         updated_anns = []
-        #
-        #     anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=s, csifingeridmeta=meta)
-        #     rank = [x.rank for x in anns]
-        #     rank_score = get_rank_score(rank)
-        #
-        #     for j, ann in enumerate(anns):
-        #         ann.rank_score = rank_score[j]
-        #         updated_anns.append(ann)
-        #
-        # bulk_update(updated_anns)
+        matches = self.rank_score_sirius(matches)
+
+        CSIFingerIDAnnotation.objects.bulk_create(matches)
+
 
 def update_csifingerid(comp_d, matches):
     through_model = CSIFingerIDAnnotation.compound.through  # gives you access to auto-created through model
