@@ -976,15 +976,28 @@ class LcmsDataTransfer(object):
         meta = CSIFingerIDMeta()
         meta.save()
         comp_d = {}
+        UID = ''
+        UID_old = ''
+        c = 0
         for i, row in enumerate(cursor):
+
             UID = row[names['UID']]
             if UID == 'UID':
                 continue
 
+            if UID == UID_old:
+                end_ann = True
+                rank = [x.rank for x in matches]
+                rank_score = get_rank_score(rank)
+                for j, match in enumerate(matches):
+                    match.rank_score = rank_score[j]
+            else:
+                end_ann = False
+
             uid_l = UID.split('-')
             pid = uid_l[2]
             if TEST_MODE:
-                if i > 500:
+                if i > 3000:
                     break
 
             if celery_obj and i % 500 == 0:
@@ -1035,9 +1048,10 @@ class LcmsDataTransfer(object):
                 comp_d[i + 1] = comps
             else:
 
-                if i % 500 == 0:
+                if c > 50 and end_ann:
                     CSIFingerIDAnnotation.objects.bulk_create(matches)
                     matches = []
+                    c = 0
 
             match = CSIFingerIDAnnotation(idi=i + 1,
                                           s_peak_meta_id=speakmeta_d[int(pid)],
@@ -1055,31 +1069,36 @@ class LcmsDataTransfer(object):
             # match.compound.add(*comps)
 
             speaks.append(speakmeta_d[int(pid)])
+            c+=1
 
         if csi_speed:
             CSIFingerIDAnnotation.objects.bulk_create(matches)
         else:
             update_csifingerid(comp_d, matches)
 
-        updated_anns = []
-        # get ranked score
-        for i, s in enumerate(speaks):
-            if celery_obj and i % 500 == 0:
-                celery_obj.update_state(state='RUNNING',
-                                    meta={'current': 80, 'total': 100,
-                                          'status': 'SIRIUS CSI-FingerID upload, updating ranks {}'.format(i)})
-                bulk_update(updated_anns)
-                updated_anns = []
-
-            anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=s, csifingeridmeta=meta)
-            rank = [x.rank for x in anns]
-            rank_score = get_rank_score(rank)
-
-            for j, ann in enumerate(anns):
-                ann.rank_score = rank_score[j]
-                updated_anns.append(ann)
-
-        bulk_update(updated_anns)
+        # updated_anns = []
+        # # get ranked score
+        # for i, s in enumerate(speaks):
+        #
+        #     if celery_obj and i % 50 == 0:
+        #         celery_obj.update_state(state='RUNNING',
+        #                             meta={'current': 80, 'total': 100,
+        #                                   'status': 'SIRIUS CSI-FingerID upload, updating ranks {}'.format(i)})
+        #
+        #
+        #     if celery_obj and i % 500 == 0:
+        #         bulk_update(updated_anns)
+        #         updated_anns = []
+        #
+        #     anns = CSIFingerIDAnnotation.objects.filter(s_peak_meta_id=s, csifingeridmeta=meta)
+        #     rank = [x.rank for x in anns]
+        #     rank_score = get_rank_score(rank)
+        #
+        #     for j, ann in enumerate(anns):
+        #         ann.rank_score = rank_score[j]
+        #         updated_anns.append(ann)
+        #
+        # bulk_update(updated_anns)
 
 def update_csifingerid(comp_d, matches):
     through_model = CSIFingerIDAnnotation.compound.through  # gives you access to auto-created through model
