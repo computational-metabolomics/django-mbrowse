@@ -808,7 +808,7 @@ class LcmsDataTransfer(object):
 
         for i, row in enumerate(cursor):
             if TEST_MODE:
-                if i > 50:
+                if i > 500:
                     break
 
             UID = row[names['UID']]
@@ -917,7 +917,7 @@ class LcmsDataTransfer(object):
 
         for c, row in enumerate(cursor):
             if TEST_MODE:
-                if c > 50:
+                if c > 500:
                     break
             if not row[names['grp_id']]:
                 continue
@@ -984,7 +984,7 @@ class LcmsDataTransfer(object):
             uid_l = UID.split('-')
             pid = uid_l[2]
             if TEST_MODE:
-                if i > 50:
+                if i > 500:
                     break
 
             if celery_obj and i % 500 == 0:
