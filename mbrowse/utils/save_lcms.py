@@ -56,7 +56,7 @@ if sys.version_info[0] < 3:
 else:
     from urllib.error import URLError
 
-TEST_MODE = False
+TEST_MODE = True
 
 class LcmsDataTransfer(object):
     def __init__(self, hdm_id, mfile_ids):
