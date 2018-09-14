@@ -996,7 +996,13 @@ class LcmsDataTransfer(object):
             uid_l = UID.split('-')
             pid = uid_l[2]
 
-            if row[names['Rank']] > 6:
+            try:
+                rank = int(row[names['Rank']])
+            except ValueError as e:
+                print(e)
+                continue
+                
+            if rank > 6:
                 continue
 
             if TEST_MODE:
