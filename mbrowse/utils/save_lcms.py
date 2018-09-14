@@ -1034,7 +1034,7 @@ class LcmsDataTransfer(object):
                                           s_peak_meta_id=speakmeta_d[int(pid)],
                                           inchikey2d=row[names['InChIkey2D']],
                                           molecular_formula=row[names['molecularFormula']],
-                                          rank=row[names['Rank']],
+                                          rank=rank,
                                           score=row[names['Score']],
                                           name=row[names['Name']],
                                           links=row[names['links']],
