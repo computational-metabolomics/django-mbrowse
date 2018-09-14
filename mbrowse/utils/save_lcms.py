@@ -824,7 +824,13 @@ class LcmsDataTransfer(object):
                 # currently only add compounds we can have a name for (should be all cases if PubChem was used)
                 continue
 
-            if float(row[names['Score']]) < 0.6:
+            try:
+                score = float(row[names['Score']])
+            except ValueError as e:
+                print(e)
+                continue
+
+            if score < 0.6:
                 # no point storing anything less than 0.6
                 continue
 
@@ -1001,7 +1007,7 @@ class LcmsDataTransfer(object):
             except ValueError as e:
                 print(e)
                 continue
-                
+
             if rank > 6:
                 continue
 
