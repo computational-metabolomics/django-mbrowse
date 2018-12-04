@@ -669,7 +669,6 @@ def main():
                             -------------------------------------------------------------------------
                             '''))
 
-
     p.add_argument('-msp_file', dest='msp_file', help='path to the MSP file', required=True)
     p.add_argument('-name', dest='name', help='name of the database', required=True)
     p.add_argument('-source', dest='source', help='Name of data source (e.g. MassBank, LipidBlast)', required=True)
