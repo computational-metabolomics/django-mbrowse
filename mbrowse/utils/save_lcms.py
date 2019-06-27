@@ -17,6 +17,7 @@ from mbrowse.models import (
     EicMeta,
     SpectralMatching,
     LibrarySpectraMeta,
+    LibrarySpectra,
     AdductRule,
     NeutralMass,
     Adduct,
@@ -25,22 +26,15 @@ from mbrowse.models import (
     ProbmetabAnnotation,
     MetFragAnnotation,
     CSIFingerIDAnnotation,
-    CSIFingerIDMeta
+    CSIFingerIDMeta,
+    CAnnotation
 )
 from bulk_update.helper import bulk_update
 from django.db.models import Count, Avg, F, Max
 import sqlite3
-from sqlite3 import OperationalError
-import numpy as np
-from pubchempy import PubChemHTTPError
 from django.db import connection
 from mbrowse.utils.sql_utils import sql_column_names, check_table_exists_sqlite
-from mbrowse.utils.update_cannotations import UpdateCannotations
-from mbrowse.utils.upload_kegg_info import get_kegg_compound, get_pubchem_compound, get_inchi_from_chebi
 from django.conf import settings
-import uuid
-from django.conf import settings
-from django.urls import reverse_lazy
 
 import re
 import os
@@ -110,13 +104,23 @@ class LcmsDataTransfer(object):
         self.set_polarity()
 
         ###################################
+        # Get grouped peaklist
+        ###################################
+        if celery_obj:
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 5, 'total': 100, 'status': 'Get grouped peaks'})
+
+        self.save_xcms_grouped_peaks()
+
+        ###################################
         # Get scan meta info
         ###################################
         if celery_obj:
             celery_obj.update_state(state='RUNNING',
-                                    meta={'current': 5, 'total': 100, 'status': 'Get map scan meta info'})
+                                    meta={'current': 10, 'total': 100, 'status': 'Get map scan meta info'})
 
         runs = {k: v.run for k, v in six.iteritems(mfile_d)}
+
         self.save_s_peak_meta(runs, celery_obj)
 
         ###################################
@@ -124,7 +128,7 @@ class LcmsDataTransfer(object):
         ###################################
         if celery_obj:
             celery_obj.update_state(state='RUNNING',
-                                    meta={'current': 10, 'total': 100, 'status': 'Get scan peaks'})
+                                    meta={'current': 15, 'total': 100, 'status': 'Get scan peaks'})
 
         self.save_s_peaks(celery_obj)
 
@@ -133,18 +137,11 @@ class LcmsDataTransfer(object):
         ###################################
         if celery_obj:
             celery_obj.update_state(state='RUNNING',
-                                    meta={'current': 15, 'total': 100, 'status': 'Get chromatographic peaks (indiv)'})
+                                    meta={'current': 20, 'total': 100, 'status': 'Get chromatographic peaks (indiv)'})
 
         self.save_xcms_individual_peaks(xfi_d)
 
-        ###################################
-        # Get grouped peaklist
-        ###################################
-        if celery_obj:
-            celery_obj.update_state(state='RUNNING',
-                                    meta={'current': 20, 'total': 100, 'status': 'Get grouped peaks'})
 
-        self.save_xcms_grouped_peaks()
 
         ###################################
         # Save EIC
@@ -187,13 +184,30 @@ class LcmsDataTransfer(object):
         self.save_speakmeta_cpeak_frag_link()
 
         ####################################
+        # Save metab compound
+        ####################################
+        if celery_obj:
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 42, 'total': 100,
+                                          'status': 'Updating compounds'})
+
+        self.save_metab_compound()
+
+        ####################################
         # spectral matching
         ####################################
         if celery_obj:
             celery_obj.update_state(state='RUNNING',
                                     meta={'current': 45, 'total': 100,
                                           'status': 'Get spectral matching annotations'})
-        self.save_spectral_matching_annotations()
+        lib_ids = self.save_spectral_matching_annotations()
+
+        if celery_obj:
+            celery_obj.update_state(state='RUNNING',
+                                    meta={'current': 47, 'total': 100,
+                                          'status': 'Get spectral matching library spectra'})
+
+        self.save_library_spectra(lib_ids)
 
         ####################################
         # MetFrag
@@ -231,9 +245,14 @@ class LcmsDataTransfer(object):
             celery_obj.update_state(state='RUNNING',
                                     meta={'current': 90, 'total': 100,
                                           'status': 'Update cpeak group annotation summary'})
+        self.save_combined_annotations(celery_obj)
 
-        uc = UpdateCannotations(cpgm=self.cpgm)
-        uc.update_cannotations(celery_obj=celery_obj, current=95)
+        if celery_obj:
+            celery_obj.update_state(state='RUNNING',
+                                        meta={'current': 95, 'total': 100,
+                                              'status': 'Updating "best match"'})
+        self.update_best_match(celery_obj, 95)
+
         if celery_obj:
             celery_obj.update_state(state='SUCCESS',
                                         meta={'current': 100, 'total': 100,
@@ -297,19 +316,24 @@ class LcmsDataTransfer(object):
 
         for row in self.cursor:
             idi = row[names['fileid']]
-            fn = row[names['filename']]
+
+            if row[names['nm_save']]:
+                fn = row[names['nm_save']]
+            else:
+                fn = row[names['filename']]
 
             if xset_classes:
                 sampleType = xset_classes[os.path.splitext(fn)[0]]
             else:
                 # old database schema has this stored in the same table
-                sampleType = row[names['sampleclass']]
+                sampleType = row[names['class']]
 
             mfile_qs = mfiles.filter(original_filename=fn)
 
             if mfile_qs:
                 mfile = mfile_qs[0]
             else:
+
                 # add the file with the most basic of information
                 prefix, suffix = os.path.splitext(fn)
 
@@ -327,7 +351,6 @@ class LcmsDataTransfer(object):
                     run = Run(prefix=prefix)
 
                 run.save()
-
                 mfile = MFile(original_filename=fn, run=run, mfilesuffix=MFileSuffix.objects.filter(suffix=suffix)[0])
                 mfile.save()
 
@@ -339,8 +362,6 @@ class LcmsDataTransfer(object):
 
         return xfi_d, mfile_d
 
-
-
     def save_s_peak_meta(self, runs, celery_obj):
         md = self.md
         cursor = self.cursor
@@ -350,7 +371,11 @@ class LcmsDataTransfer(object):
 
         speakmetas = []
 
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
+
+
         for row in cursor:
+
             # this needs to be update after SQLite update in msPurity
             # to stop ram memory runnning out
             if len(speakmetas) % 500 == 0:
@@ -365,7 +390,7 @@ class LcmsDataTransfer(object):
 
             speakmetas.append(
                 SPeakMeta(
-                    run=runs[row[names['fileid']]],
+                    run=runs[row[names['fileid']]] if row[names['fileid']] in runs else None,
                     idi=row[names['pid']],
                     precursor_mz=row[names['precursorMZ']],
                     precursor_i=row[names['precursorIntensity']],
@@ -381,6 +406,8 @@ class LcmsDataTransfer(object):
                     i_pknm=row[names['ipkNm']],
                     in_purity=row[names['inPurity']],
                     in_pknm=row[names['inPkNm']],
+                    spectrum_type=row[names['spectrum_type']] if 'spectrum_type' in names else None,
+                    cpeakgroup_id=cpeakgroups_d[int(row[names['grpid']])] if row[names['grpid']] else None,
                     ms_level=2,
                     metabinputdata=md
                 )
@@ -417,7 +444,7 @@ class LcmsDataTransfer(object):
                 SPeak.objects.bulk_create(speaks)
                 if celery_obj:
                     celery_obj.update_state(state='RUNNING',
-                                            meta={'current': 10, 'total': 100,
+                                            meta={'current': 20, 'total': 100,
                                                   'status': 'Scan peaks upload, {}'.format(len(speaks))})
                 speaks = []
 
@@ -457,7 +484,6 @@ class LcmsDataTransfer(object):
 
         CPeak.objects.bulk_create(cpeaks)
 
-
     def save_xcms_grouped_peaks(self):
         md = self.md
         cursor = self.cursor
@@ -495,7 +521,6 @@ class LcmsDataTransfer(object):
     def save_eics(self):
         md = self.md
         cursor = self.cursor
-
 
         if not check_table_exists_sqlite(cursor, 'eics'):
             return 0
@@ -556,7 +581,7 @@ class LcmsDataTransfer(object):
                 CPeakGroupLink(
                     cpeak_id=cpeaks_d[row[names['cid']]],
                     cpeakgroup_id=cpeakgroups_d[row[names['grpid']]],
-                    best_feature=row[names['best_feature']] if 'best_feature' in names else None,
+                    best_feature=row[names['bestpeak']] if 'bestpeak' in names else None,
                 )
             )
 
@@ -712,7 +737,6 @@ class LcmsDataTransfer(object):
 
         SPeakMetaCPeakFragLink.objects.bulk_create(speakmeta_cpeak_frag_links)
 
-
         # Add the number of msms events for grouped feature (not possible with django sql stuff)
         sqlstmt = '''UPDATE mbrowse_cpeakgroup t
                         INNER JOIN (
@@ -729,15 +753,90 @@ class LcmsDataTransfer(object):
         with connection.cursor() as cursor:
             cursor.execute(sqlstmt)
 
+    def save_metab_compound(self):
+        cursor = self.cursor
+
+        if not check_table_exists_sqlite(cursor, 'metab_compound'):
+            return 0
+
+        cursor.execute('SELECT * FROM  metab_compound')
+        names = sql_column_names(cursor)
+
+        for row in cursor:
+            if 'inchikey' in names:
+                inchikey = row[names['inchikey']]
+            elif 'inchikey_id' in names:
+                inchikey = row[names['inchikey_id']]
+            else:
+                break
+            cmp = Compound.objects.filter(inchikey_id=inchikey)
+            if not cmp:
+
+                cmp = Compound(inchikey_id=inchikey,
+                               name=row[names['name']] if row[names['name']] else 'Unknown',
+                               pubchem_id=row[names['pubchem_id']],
+                               other_names=row[names['other_names']] if 'other_names' in names else None,
+                               exact_mass=row[names['exact_mass']] if 'exact_mass' in names else None,
+                               molecular_formula=row[names['molecular_formula']] if 'molecular_formula' in names else None,
+                               molecular_weight=row[names['molecular_weight']] if 'molecular_weight' in names else None,
+                               compound_class=row[names['compound_class']] if 'compound_class' in names else None,
+                               smiles=row[names['smiles']] if 'smiles' in names else None,
+                               iupac_prefered=row[names['iupac_prefered']] if 'iupac_prefered' in names else None,
+                               drug=row[names['drug']] if 'drug' in names else None,
+                               brite1=row[names['brite1']] if 'brite1' in names else None,
+                               brite2=row[names['brite2']] if 'brite2' in names else None,
+                               inchikey1=row[names['inchikey1']] if 'inchikey1' in names else None,
+                               inchikey2=row[names['inchikey2']] if 'inchikey2' in names else None,
+                               inchikey3=row[names['inchikey3']] if 'inchikey3' in names else None,
+                               )
+                cmp.save()
+
+    def save_library_spectra(self, lib_ids):
+        cursor = self.cursor
+
+        if not check_table_exists_sqlite(cursor, 'l_s_peaks'):
+            return 0
+
+        cursor.execute('SELECT * FROM  l_s_peaks WHERE library_spectra_meta_id IN ({})'.
+                       format(','.join([str(i) for i in lib_ids.keys()])))
+
+        names = sql_column_names(cursor)
+
+        lsps = []
+
+        for row in cursor:
+            if len(lsps) % 500 == 0:
+                LibrarySpectra.objects.bulk_create(lsps)
+                lsps = []
+
+            lsp = LibrarySpectra(mz=row[names['mz']],
+                                 i=row[names['i']],
+                                 other=row[names['other']],
+                                 library_spectra_meta_id=lib_ids[row[names['library_spectra_meta_id']]])
+
+            lsps.append(lsp)
+
+        LibrarySpectra.objects.bulk_create(lsps)
+
+
     def save_spectral_matching_annotations(self):
         md = self.md
         cursor = self.cursor
 
-
-        if not check_table_exists_sqlite(cursor, 'matches'):
+        if not check_table_exists_sqlite(cursor, 'xcms_match'):
             return 0
 
-        cursor.execute('SELECT * FROM  matches LEFT JOIN library_meta ON matches.lid=library_meta.lid')
+        # Make sure column name is compatible (older version uses id
+        cursor.execute('PRAGMA table_info(l_s_peak_meta)')
+        cnames = [row[1] for row in cursor]
+        if 'pid' in cnames:
+            l_s_peak_meta_id_cn = 'pid'
+        else:
+            l_s_peak_meta_id_cn = 'id'
+
+        cursor.execute('SELECT * FROM  xcms_match LEFT JOIN l_s_peak_meta ON xcms_match.lpid=l_s_peak_meta.{}'.
+                       format(l_s_peak_meta_id_cn))
+
         names = sql_column_names(cursor)
 
         speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
@@ -745,51 +844,64 @@ class LcmsDataTransfer(object):
         library_d = {c.accession: c.pk for c in LibrarySpectraMeta.objects.all()}
         cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
+        # keep track of the new librarymetaids
+        new_lib_ids = {}
+
         matches = []
         for row in cursor:
-
             if len(matches) % 500 == 0:
                 SpectralMatching.objects.bulk_create(matches)
                 matches = []
 
-            if row[names['source_name']] in ['massbank', 'mona-experimental', 'lipidblast']:
-                # Currently only works for mass bank (or anything from the experimental MONA library)
+            if names['accession'] in library_d:
+                lsm_id = library_d[row[names['accession']]]
+            else:
+                lsm = LibrarySpectraMeta(
+                                   name=row[names['name']],
+                                   collision_energy=row[names['collision_energy']],
+                                   ms_level=row[names['ms_level']],
+                                   accession=row[names['accession']],
+                                   resolution=row[names['resolution']],
+                                   polarity=row[names['polarity']],
+                                   fragmentation_type=row[names['fragmentation_type']],
+                                   precursor_mz=row[names['precursor_mz']],
+                                   precursor_type=row[names['precursor_type']],
+                                   instrument_type=row[names['instrument_type']],
+                                   instrument=row[names['instrument']],
+                                   copyright=row[names['copyright']],
+                                   column=row[names['column']],
+                                   mass_accuracy=row[names['mass_accuracy']],
+                                   mass_error=row[names['mass_error']],
+                                   origin=row[names['origin']],
+                                   splash=row[names['splash']],
+                                   retention_index=row[names['retention_index']],
+                                   retention_time=row[names['retention_time']],
+                                   inchikey_id=row[names['inchikey_id']]
+                )
+                lsm.save()
+                lsm_id = lsm.id
+                new_lib_ids[row[names['lpid']]] = lsm_id
 
-                try:
-                    lsm_id = library_d[row[names['accession']]]
-                except KeyError as e:
-                    print(e)
-                    lsm_id = None
+            match = SpectralMatching(idi=row[names['mid']],
+                                     speakmeta_id=speakmeta_d[row[names['pid']]],
+                                     cpeakgroup_id=cpeakgroups_d[row[names['grpid']]],
+                                     dpc=row[names['dpc']],
+                                     rdpc=row[names['rdpc']],
+                                     cdpc=row[names['cdpc']],
 
-                match = SpectralMatching(idi=row[names['mid']],
-                                         s_peak_meta_id=speakmeta_d[row[names['pid']]],
-                                         score=row[names['score']],
-                                         percentage_match=row[names['perc_mtch']],
-                                         match_num=row[names['match']],
-                                         accession=row[names['accession']],
-                                         name=row[names['name']],
-                                         library_spectra_meta_id=lsm_id
-                                         )
+                                     allcount=row[names['allcount']],
+                                     mcount=row[names['mcount']],
+                                     mpercent=row[names['mpercent']],
+                                     accession=row[names['accession']],
+                                     name=row[names['name']],
+                                     libraryspectrameta_id=lsm_id
+                                     )
 
-                matches.append(match)
+            matches.append(match)
 
         SpectralMatching.objects.bulk_create(matches)
 
-        # cursor.execute('SELECT * FROM  xcms_match')
-        # namex = sql_column_names(cursor)
-        #
-        # matchxs = []
-        # for row in cursor:
-        #     print cpeakgroups_d[row[namex['grpid']]]
-        #     cpg = CPeakGroup.objects.get(pk=int(cpeakgroups_d[row[namex['grpid']]]))
-        #     cpg.best_annotation=row[namex['best_name']]
-        #     cpg.best_score=row[namex['best_median_score']]
-        #     print cpg
-        #     cpg.save()
-
-        # matchxs.append(cpg)
-
-        # CPeakGroupAnn.objects.bulk_create(matchxs)
+        return new_lib_ids
 
     def save_metfrag(self, celery_obj):
         md = self.md
@@ -801,25 +913,13 @@ class LcmsDataTransfer(object):
         cursor.execute('SELECT * FROM  metfrag_results')
         names = sql_column_names(cursor)
 
-        speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
-
         matches = []
-
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
         for i, row in enumerate(cursor):
             if TEST_MODE:
                 if i > 500:
                     break
-
-            UID = row[names['UID']]
-
-            if UID=='UID':
-                # duplicate header name
-                continue
-
-            uid_l = UID.split('-')
-            pid = uid_l[2]
-
             if not row[names['InChIKey']]:
                 # currently only add compounds we can have a name for (should be all cases if PubChem was used)
                 continue
@@ -828,10 +928,6 @@ class LcmsDataTransfer(object):
                 score = float(row[names['Score']])
             except ValueError as e:
                 print(e)
-                continue
-
-            if score < 0.6:
-                # no point storing anything less than 0.6
                 continue
 
             if celery_obj and len(matches) % 100 == 0:
@@ -845,52 +941,13 @@ class LcmsDataTransfer(object):
                 matches = []
 
             inchikey = row[names['InChIKey']]
-            identifier = row[names['Identifier']]
             comp_search = Compound.objects.filter(inchikey_id=inchikey)
-            # if comp_search:
-            #     comp = comp_search[0]
-            # else:
-            #     comp = Compound(inchikey_id=inchikey,
-            #                     name=row[names['CompoundName']] if row[names['CompoundName']] else '',
-            #                     molecular_formula=row[names['MolecularFormula']],
-            #                     exact_mass=row[names['MonoisotopicMass']],
-            #                     monoisotopic_mass=row[names['MonoisotopicMass']],
-            #                     smiles=row[names['SMILES']],
-            #                     pubchem_id=identifier
-            #                     )
-            #     comp.save()
 
-            # Takes too long to search pubchem
             if comp_search:
                 comp = comp_search[0]
-            else:
-                print('CHECK LOCALLY')
-                comp = get_pubchem_sqlite_local(identifier)
 
-                if not comp:
-                    print('CHECK CID')
-                    pc_matches = get_pubchem_compound(identifier, 'cid')
-
-                    if not pc_matches:
-                        print('CHECK INCHIKEY')
-                        pc_matches = get_pubchem_compound(inchikey, 'inchikey')
-                        if not pc_matches:
-                            print(row)
-                            print(pc_matches)
-                            print(inchikey)
-                            continue
-
-                    if len(pc_matches) > 1:
-                        print('More than 1 match for inchi, taking the first match, should only really happen in rare cases' \
-                              'and we have not got the power to distinguish between them anyway!')
-
-
-                    pc_match = pc_matches[0]
-                    comp = create_pubchem_comp(pc_match)
-                    comp.save()
-
-            match = MetFragAnnotation(idi=i + 1,
-                                      s_peak_meta_id=speakmeta_d[int(pid)],
+                match = MetFragAnnotation(idi=i + 1,
+                                      cpeakgroup_id=cpeakgroups_d[names['grpid']],
                                       compound=comp,
                                       explained_peaks=row[names['ExplPeaks']],
                                       formula_explained_peaks=row[names['FormulasOfExplPeaks']],
@@ -900,16 +957,13 @@ class LcmsDataTransfer(object):
                                       number_peaks_used=row[names['NumberPeaksUsed']],
                                       score=row[names['Score']]
                                       )
-            matches.append(match)
-
+                matches.append(match)
 
         MetFragAnnotation.objects.bulk_create(matches)
 
     def save_probmetab(self, celery_obj):
         md = self.md
         cursor = self.cursor
-
-
 
         if not check_table_exists_sqlite(cursor, 'probmetab_results'):
             return 0
@@ -925,7 +979,7 @@ class LcmsDataTransfer(object):
             if TEST_MODE:
                 if c > 500:
                     break
-            if not row[names['grp_id']]:
+            if not row[names['grpid']]:
                 continue
 
             if celery_obj and len(matches) % 100 == 0:
@@ -937,44 +991,18 @@ class LcmsDataTransfer(object):
                 ProbmetabAnnotation.objects.bulk_create(matches)
                 matches = []
 
-
-
-
-            # Expect to have majority of KEGG in the Compound model already
-            kegg_id = row[names['mpc']].split(':')[1]
-            comp_search = Compound.objects.filter(kegg_id__regex='(^|.*,|")({})("|,.*|$)'.format(kegg_id)) # this needs to be update to be proper relational as the regex fails in some cases!
-            if comp_search:
-                comp = comp_search[0]
-            else:
-                kegg_compound = get_kegg_compound(kegg_id)
-                if 'chebi_id_single' in kegg_compound and kegg_compound['chebi_id_single']:
-                    inchikey = get_inchi_from_chebi(kegg_compound['chebi_id_single'])
-                    if inchikey:
-                        kegg_compound['inchikey_id'] = inchikey
-
-                comp = save_compound_kegg(kegg_compound)
-
             match = ProbmetabAnnotation(idi=c + 1,
-                                        cpeakgroup_id=cpeakgroups_d[int(row[names['grp_id']])],
-                                        compound=comp,
-                                        prob=row[names['proba']])
+                                        cpeakgroup_id=cpeakgroups_d[int(row[names['grpid']])],
+                                        prob=row[names['proba']],
+                                        mpc=row[names['mpc']])
 
             matches.append(match)
 
         ProbmetabAnnotation.objects.bulk_create(matches)
 
-
-    def rank_score_sirius(self, matches):
-        rank = [x.rank for x in matches]
-        rank_score = get_rank_score(rank)
-        for j, match in enumerate(matches):
-            match.rank_score = rank_score[j]
-        return matches
-
-    def save_sirius_csifingerid(self, celery_obj, csi_speed=True):
+    def save_sirius_csifingerid(self, celery_obj):
         md = self.md
         cursor = self.cursor
-
 
         if not check_table_exists_sqlite(cursor, 'sirius_csifingerid_results'):
             return 0
@@ -982,32 +1010,22 @@ class LcmsDataTransfer(object):
         cursor.execute('SELECT * FROM  sirius_csifingerid_results')
         names = sql_column_names(cursor)
 
-        speakmeta_d = {c.idi: c.pk for c in SPeakMeta.objects.filter(metabinputdata=md)}
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
 
-        speaks = []
         matches = []
 
         meta = CSIFingerIDMeta()
         meta.save()
-        comp_d = {}
-
-        UID_old = ''
 
         for i, row in enumerate(cursor):
 
-            UID = row[names['UID']]
-            if UID == 'UID':
-                continue
-
-            uid_l = UID.split('-')
-            pid = uid_l[2]
-
             try:
-                rank = int(row[names['Rank']])
+                rank = int(row[names['rank']])
             except ValueError as e:
                 print(e)
                 continue
 
+            # Only look at the top 10 hits
             if rank > 6:
                 continue
 
@@ -1020,23 +1038,17 @@ class LcmsDataTransfer(object):
                                         meta={'current': 80, 'total': 100,
                                               'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
-            if UID_old and not UID == UID_old:
-                print(i)
-                print(UID_old, UID)
-                matches = self.rank_score_sirius(matches)
                 CSIFingerIDAnnotation.objects.bulk_create(matches)
                 matches = []
 
-
-            UID_old = UID
-
             match = CSIFingerIDAnnotation(idi=i + 1,
-                                          s_peak_meta_id=speakmeta_d[int(pid)],
-                                          inchikey2d=row[names['InChIkey2D']],
+                                          cpeakgroup_id=cpeakgroups_d[int(row[names['grpid']])],
+                                          inchikey2d=row[names['inchikey2D']],
                                           molecular_formula=row[names['molecularFormula']],
                                           rank=rank,
-                                          score=row[names['Score']],
-                                          name=row[names['Name']],
+                                          score=row[names['score']],
+                                          bounded_score=row[names['bounded_score']],
+                                          name=row[names['name']],
                                           links=row[names['links']],
                                           smiles=row[names['smiles']],
                                           csifingeridmeta=meta
@@ -1045,156 +1057,83 @@ class LcmsDataTransfer(object):
 
             # match.compound.add(*comps)
 
-            speaks.append(speakmeta_d[int(pid)])
-
-
-        matches = self.rank_score_sirius(matches)
-
         CSIFingerIDAnnotation.objects.bulk_create(matches)
 
+    def save_combined_annotations(self, celery_obj):
+        md = self.md
+        cursor = self.cursor
 
-def update_csifingerid(comp_d, matches):
-    through_model = CSIFingerIDAnnotation.compound.through  # gives you access to auto-created through model
-    mtch_created = CSIFingerIDAnnotation.objects.bulk_create(matches)
-    many2many_links = []
-    for mc in mtch_created:
-        mc_id = CSIFingerIDAnnotation.objects.get(csifingeridmeta=mc.csifingeridmeta, idi=mc.idi,
-                                                  s_peak_meta=mc.s_peak_meta).id
-        for cm in list(set(comp_d[mc.idi])):
-            print(mc_id, cm)
-            many2many_links.append(through_model(csifingeridannotation_id=mc_id, compound=cm))
-    through_model.objects.bulk_create(many2many_links)
+        if not check_table_exists_sqlite(cursor, 'combined_annotations'):
+            return 0
 
-
-def get_pubchem_sqlite_local(pubchem_id):
-    if not hasattr(settings, 'METAB_PUBCHEM_SQLITE_PTH') and not settings.METAB_PUBCHEM_SQLITE_PTH:
-        return ''
-
-    if not pubchem_id:
-        return ''
-
-    conn = sqlite3.connect(settings.METAB_PUBCHEM_SQLITE_PTH)
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute('SELECT * FROM  pubchem_compounds WHERE cid={}'.format(pubchem_id))
+        cursor.execute('SELECT * FROM  combined_annotations')
         names = sql_column_names(cursor)
-        rows = cursor.fetchall()
 
-    except OperationalError as e:
-        print(e)
-        return ''
+        cpeakgroups_d = {c.idi: c.pk for c in CPeakGroup.objects.filter(cpeakgroupmeta=self.cpgm)}
+        cans = []
 
-    if rows:
-        # should only be 1 entrie per cid so take first row
-        return create_compound_from_pubchem_local(rows[0], names)
-    else:
-        return ''
+        for i, row in enumerate(cursor):
 
+            if TEST_MODE:
+                if i > 3000:
+                    break
 
+            if celery_obj and i % 500 == 0:
+                celery_obj.update_state(state='RUNNING',
+                                        meta={'current': 95, 'total': 100,
+                                              'status': 'SIRIUS CSI-FingerID upload, annotation {}'.format(i)})
 
+                CAnnotation.objects.bulk_create(cans)
+                cans = []
 
-def create_compound_from_pubchem_local(row, names):
-    cid = row[names['cid']]
-    inchikey = row[names['inchikey']]
-    comp = Compound.objects.filter(inchikey_id=inchikey)
+            can = CAnnotation(compound_id=row[names['inchikey']],
+                              cpeakgroup_id=cpeakgroups_d[row[names['grpid']]],
+                              sirius_csifingerid_score=row[names['sirius_score']],
+                              sirius_csifingerid_wscore=row[names['sirius_wscore']],
+                              metfrag_score=row[names['metfrag_score']],
+                              metfrag_wscore=row[names['metfrag_wscore']],
+                              sm_score=row[names['sm_score']],
+                              sm_wscore=row[names['sm_wscore']],
+                              probmetab_score=row[names['probmetab_score']],
+                              probmetab_wscore=row[names['probmetab_wscore']],
+                              weighted_score=row[names['wscore']],
+                              rank=row[names['rank']])
+            cans.append(can)
 
-    if comp:
-        mtch_compound = comp[0]
-        if not mtch_compound.pubchem_id:
-            mtch_compound.pubchem_id = cid
-            mtch_compound.save()
+            # match.compound.add(*comps)
 
-        elif not re.match('(?:^|.*,)({})(?:,.*|$)'.format(cid), mtch_compound.pubchem_id):
-            mtch_compound.pubchem_id = '{},{}'.format(mtch_compound.pubchem_id, cid)
-            mtch_compound.save()
+        CAnnotation.objects.bulk_create(cans)
 
-        return mtch_compound
-    else:
-        name = 'unknown'
-        if row[names['name']]:
-            name = row[names['name']]
-        elif row[names['iupac_name']]:
-            name = row[names['iupac_name']]
+    def update_best_match(self, celery_obj=None, current=None):
+        cpgm = self.cpgm
 
-        # we create the compound
-        comp = Compound(inchikey_id=inchikey,
-                 pubchem_id=cid,
-                 exact_mass=row[names['exact_mass']],
-                 molecular_formula=row[names['mf']],
-                 name=name,
-                 monoisotopic_mass=row[names['monoisotopic_weight']],
-                 molecular_weight=row[names['molecular_weight']],
-                 iupac_name=row[names['iupac_name']],
-                 systematic_name=row[names['iupac_systematic_name']]
-        )
-        comp.save()
-        return comp
+        cpgqs = CPeakGroup.objects.filter(
+            cpeakgroupmeta=cpgm,
+            ).values(
+              'id'
+            ).annotate(
+                Max('cannotation__weighted_score'),
+                Max('cannotation__compound__name')
+            )
+        cpgs = []
+        for i, cpgq in enumerate(cpgqs):
+            if i % 200 == 0:
+                print(i)
+                bulk_update(cpgs)
+                cpgs=[]
 
-def save_compound_kegg(kegg_compound):
-
-    comp = Compound(inchikey_id=kegg_compound['inchikey_id'] if 'inchikey_id' in kegg_compound else 'UNKNOWN_' + str(uuid.uuid4()),
-                    name=kegg_compound['name'] if 'name' in kegg_compound else 'unknown name',
-                    molecular_formula=kegg_compound['mf'] if 'mf' in kegg_compound else None,
-                    exact_mass=kegg_compound['exact_mass'] if 'exact_mass' in kegg_compound else None,
-                    kegg_id=kegg_compound['kegg_cid'],
-                    chebi_id=kegg_compound['chebi_id'] if 'chebi_id' in kegg_compound else None,
-                    lbdb_id=kegg_compound['lbdb_id'] if 'lbdb_id' in kegg_compound else None,
-                    lmdb_id=kegg_compound['lmdb_id'] if 'lmdb_id' in kegg_compound else None,
-                    brite=kegg_compound['brite'] if 'brite' in kegg_compound else None,
-
-                    )
-    comp.save()
-    return comp
+                if celery_obj:
+                    celery_obj.update_state(state='RUNNING',
+                                        meta={'current': current, 'total': 100,
+                                              'status': 'Update best match {}'.format(i)})
 
 
-def get_rank_score(l):
-    if len(l) <= 1:
-        # only 1 (or less)
-        return [1]
+            cpg = CPeakGroup.objects.get(pk=cpgq['id'])
 
-    if all(x == l[0] for x in l):
-        # all the same (just give all score of 1)
-        return [1] * len(l)
+            cpg.best_annotation = CAnnotation.objects.filter(
+                                    cpeakgroup_id=cpg.id,
+                                    weighted_score=cpgq['cannotation__weighted_score__max']
+                                  )[0] if cpgq['cannotation__compound__name__max'] else None
+            cpg.best_score = cpgq['cannotation__weighted_score__max']
+            cpgs.append(cpg)
 
-    npa = np.array(l)
-    rank_score = np.zeros(npa.shape[0])
-    m = npa.max()
-    for i in xrange(npa.shape[0]):
-        r = abs(npa[i] - (m + 1))
-        rank_score[i] = ((float(r) - 1) / (m - 1))
-
-    return rank_score
-
-def create_pubchem_comp(pc_match, kegg_id=None):
-    try:
-
-        if pc_match.synonyms:
-            name = pc_match.synonyms[0]
-            other_names = (',').join(pc_match.synonyms)
-        else:
-            name = pc_match.iupac_name if pc_match.iupac_name else 'unknown name'
-            other_names = pc_match.iupac_name
-    except PubChemHTTPError as e:
-        name = 'unknown name'
-        other_names = ''
-    except URLError as e:
-        name = 'unknown name'
-        other_names = ''
-
-
-    comp = Compound(inchikey_id=pc_match.inchikey,
-                    systematic_name=pc_match.iupac_name,
-                    name=name,
-                    other_names=other_names,
-                    smiles=pc_match.canonical_smiles,
-                    exact_mass=pc_match.exact_mass,
-                    monoisotopic_mass=pc_match.monoisotopic_mass,
-                    molecular_weight=pc_match.molecular_weight,
-                    molecular_formula=pc_match.molecular_formula,
-                    pubchem_id=pc_match.cid,
-                    xlogp=pc_match.xlogp,
-                    kegg_id=kegg_id if kegg_id else None
-                    )
-    comp.save()
-    return comp

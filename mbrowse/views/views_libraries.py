@@ -12,10 +12,10 @@ from mbrowse.forms import LibrarySpectraSourceForm
 
 from mbrowse.tasks import upload_library
 
-from mbrowse.models import SpectralMatching, SPeak, LibrarySpectra, LibrarySpectraMeta, CPeakGroupMeta, CPeakGroup
+from mbrowse.models import SpectralMatching, SPeak, SPeakMeta, LibrarySpectra, LibrarySpectraMeta, CPeakGroupMeta, CPeakGroup
 from mbrowse.tables import SpectralMatchingTable, SPeakTable
 
-import collections
+import six
 import numpy as np
 import seaborn as sns
 import plotly.offline as opy
@@ -57,8 +57,7 @@ class CPeakGroupSpectralMatchingListView(LoginRequiredMixin, SingleTableMixin, L
     model = SpectralMatching
     template_name = 'mbrowse/cpeakgroup_spectral_matching_summary.html'
     def get_queryset(self):
-        return SpectralMatching.objects.filter(s_peak_meta__speakmetacpeakfraglink__cpeak__cpeakgrouplink__cpeakgroup=
-                                               self.kwargs.get('cgid')).order_by('-score')
+        return SpectralMatching.objects.filter(cpeakgroup=self.kwargs.get('cgid')).order_by('-dpc')
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -83,6 +82,9 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
         # Call the base implementation first to get a context
         context = super(SMatchView, self).get_context_data(**kwargs)
 
+        sm = SpectralMatching.objects.get(id=self.kwargs.get('spmid'))
+        spm = SPeakMeta.objects.get(id=sm.speakmeta_id)
+
         values = SPeak.objects.filter(
             speakmeta__spectralmatching=self.kwargs.get('spmid')
         ).values(
@@ -92,14 +94,13 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
             'speakmeta_id',
             'speakmeta__run__mfile__original_filename',
             'speakmeta__cpeak__xcmsfileinfo__classname',
+            'speakmeta__cpeakgroup_id',
+            'speakmeta__spectrum_type'
+
         )
 
 
-
-
-
         values4plot = collections.defaultdict(list)
-
 
         for d in values:
             spmid = d['speakmeta_id']
@@ -113,6 +114,9 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
             values4plot[spmid]['class'].append(d['speakmeta__cpeak__xcmsfileinfo__classname'])
             values4plot[spmid]['filename'].append(d['speakmeta__run__mfile__original_filename'])
             values4plot[spmid]['scan_num'].append(d['speakmeta__scan_num'])
+            values4plot[spmid]['spmid'].append(d['speakmeta_id'])
+            values4plot[spmid]['spectrum_type'].append(d['speakmeta__spectrum_type'])
+            values4plot[spmid]['cpeakgroup'].append(d['speakmeta__cpeakgroup_id'])
 
         np.random.seed(sum(map(ord, "palettes")))
         c = 0
@@ -122,21 +126,28 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
         data = []
 
         # Experimental
-        for k, v in values4plot.iteritems():
+        for k, v in six.iteritems(values4plot):
 
             mzs = v['mz']
             intens = v['i']
             intens = [i/max(intens)*100 for i in intens]
             filename = v['filename']
             scan_num = v['scan_num']
+            spmids = v['spmid']
             peakclass = v['class']
+            stype = v['spectrum_type']
+            cpgs = v['cpeakgroup']
 
             for i in range(0, len(mzs)):
                 if i==0:
                     showLegend = True
                 else:
                     showLegend = False
-                name = '{f} {s} {p}'.format(f=filename[i], s=scan_num[i], p=peakclass[i])
+
+                if spm.spectrum_type=='scan':
+                    name = '{f} {s} {p} {t}'.format(f=filename[i], s=scan_num[i], p=peakclass[i], t=stype[i])
+                else:
+                    name = 'spm_id = {i}, c_peak_group_id = {c}, spec type = {t}'.format(i=spmids[i], c=cpgs[i], t=stype[i])
 
                 trace = go.Scatter(x=[mzs[i], mzs[i]],
                                 y=[0, intens[i]],
@@ -157,9 +168,9 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
 
         # library
         sm = SpectralMatching.objects.get(pk=self.kwargs.get('spmid'))
-        ls = LibrarySpectra.objects.filter(library_spectra_meta_id=sm.library_spectra_meta_id)
+        ls = LibrarySpectra.objects.filter(library_spectra_meta_id=sm.libraryspectrameta_id)
         showLegend = True
-        lib_name = LibrarySpectraMeta.objects.get(pk=sm.library_spectra_meta_id)
+        lib_name = LibrarySpectraMeta.objects.get(pk=sm.libraryspectrameta_id)
 
         for i in ls:
 
@@ -189,9 +200,21 @@ class SMatchView(LoginRequiredMixin, SingleTableMixin, ListView):
 
         context['data'] = ''
 
-        cpgm_id = CPeakGroupMeta.objects.get(cpeakgroup__cpeak__speakmeta_frag=values[0]['speakmeta_id']).id
-        cpg_id = CPeakGroup.objects.get(cpeak__speakmeta_frag=values[0]['speakmeta_id']).id
-        context['cpgm_id'] = cpgm_id
-        context['cpg_id'] = cpg_id
+        print(spm.cpeakgroup_id)
+
+        if spm.spectrum_type == 'scan':
+
+            cpgm_id = CPeakGroupMeta.objects.get(cpeakgroup__cpeak__speakmeta_frag=values[0]['speakmeta_id']).id
+            cpg_id = CPeakGroup.objects.get(cpeak__speakmeta_frag=values[0]['speakmeta_id']).id
+            context['cpgm_id'] = cpgm_id
+            context['cpg_id'] = cpg_id
+        else:
+
+            cpgm_id = CPeakGroupMeta.objects.get(cpeakgroup__id=spm.cpeakgroup_id).id
+            context['cpgm_id'] = cpgm_id
+            context['cpg_id'] = spm.cpeakgroup_id
+
+
+
 
         return context

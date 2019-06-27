@@ -11,16 +11,16 @@ from .models_general import MetabInputData, Run
 
 
 class SPeakMeta(models.Model):
-    run = models.ForeignKey(Run, on_delete=models.CASCADE)
+    run = models.ForeignKey(Run, on_delete=models.CASCADE, blank=True, null=True)
     idi = models.IntegerField()
-    scan_idi = models.IntegerField(null=True)
-    precursor_mz = models.FloatField(null=True)
-    precursor_i = models.FloatField(null=True)
-    scan_num = models.IntegerField(null=False)
-    precursor_scan_num = models.IntegerField(null=False)
-    precursor_nearest = models.IntegerField()
-    precursor_rt = models.FloatField()
-    ms_level = models.IntegerField()
+    scan_idi = models.IntegerField(null=True, blank=True)
+    precursor_mz = models.FloatField(null=True, blank=True)
+    precursor_i = models.FloatField(null=True, blank=True)
+    scan_num = models.IntegerField(null=True, blank=True)
+    precursor_scan_num = models.IntegerField(null=True, blank=True)
+    precursor_nearest = models.IntegerField(null=True, blank=True)
+    precursor_rt = models.FloatField(null=True, blank=True)
+    ms_level = models.IntegerField(null=True, blank=True)
     metabinputdata = models.ForeignKey(MetabInputData, on_delete=models.CASCADE)
     a_mz =models.FloatField(null=True, blank=True)
     a_purity = models.FloatField(null=True, blank=True)
@@ -30,6 +30,8 @@ class SPeakMeta(models.Model):
     i_pknm = models.FloatField(null=True, blank=True)
     in_purity = models.FloatField(null=True, blank=True)
     in_pknm = models.FloatField(null=True, blank=True)
+    spectrum_type = models.CharField(max_length=100, blank=True, null=True)
+    cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE, blank=True, null=True)
 
 
     def __str__(self):

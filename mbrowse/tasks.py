@@ -7,7 +7,6 @@ from mbrowse.utils.msp2db import LibraryData
 from mbrowse.utils.search_mz_nm import search_mz, search_nm
 from mbrowse.utils.search_frag import search_frag
 from mbrowse.utils.save_lcms import LcmsDataTransfer
-from mbrowse.utils.update_cannotations import UpdateCannotations
 from mbrowse.utils.download_annotations import DownloadAnnotations
 from gfiles.models import TrackTasks
 

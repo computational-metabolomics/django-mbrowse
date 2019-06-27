@@ -116,22 +116,24 @@ class CAnnotationTable(ColumnShiftTable):
     compound_name = tables.Column(accessor='compound.name', verbose_name='Compound name')
     inchikey = tables.Column(accessor='compound.inchikey_id', verbose_name='InChiKey')
     pubchem_ids = tables.Column(accessor='compound.pubchem_id', verbose_name='PubChem cid(s)')
-    kegg_ids = tables.Column(accessor='compound.kegg_id', verbose_name='KEGG cid(s)')
     mzmed = NumberColumn4(accessor='cpeakgroup.mzmed',verbose_name='mzmed')
-    rtmed = NumberColumn2(accessor='cpeakgroup.mzmed', verbose_name='rtmed')
+    rtmed = NumberColumn2(accessor='cpeakgroup.rtmed', verbose_name='rtmed')
 
-    spectral_matching_average_score =NumberColumn2()
-    metfrag_average_score =NumberColumn2()
-    mzcloud_average_score = NumberColumn2()
-    sirius_csifingerid_average_score = NumberColumn2()
-    ms1_average_score = NumberColumn2()
-
+    sirius_csifingerid_score = NumberColumn2()
+    metfrag_score = NumberColumn2()
+    mzcloud_score = NumberColumn2()
+    sm_score = NumberColumn2()
+    probmetab_score = NumberColumn2()
+    weighted_score = NumberColumn2()
 
     class Meta:
 
         model = CAnnotation
         template_name = 'django_tables2/django_tables2/semantic.html'
         # add class="paleblue" to <table> tag
+        fields = ('inputdata_id', 'inputdata', 'polarity', 'compound_name', 'inchikey', 'pubchem_ids', 'kegg_ids',
+                  'mzmed', 'rtmed', 'sirius_csifingerid_score', 'metfrag_score', 'mzcloud_score', 'sm_score',
+                  'probmetab_score', 'weighted_score')
 
         attrs = {"class": TABLE_CLASS}
 

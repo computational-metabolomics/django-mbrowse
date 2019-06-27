@@ -9,19 +9,25 @@ from django.contrib.auth.models import User
 
 class SpectralMatching(models.Model):
     idi = models.IntegerField()
-    s_peak_meta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE)
-    score = models.FloatField(null=True)
-    percentage_match = models.FloatField(null=True)
-    match_num = models.FloatField(null=True)
-    library_spectra_meta = models.ForeignKey('LibrarySpectraMeta', on_delete=models.CASCADE, null=True, blank=True)
+    speakmeta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE, null=True, blank=True)
+    cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE, null=True, blank=True)
+    dpc = models.FloatField(null=True)
+    rdpc = models.FloatField(null=True)
+    cdpc = models.FloatField(null=True)
+    mcount = models.FloatField(null=True)
+    allcount = models.FloatField(null=True)
+    mpercent = models.FloatField(null=True)
+    libraryspectrameta = models.ForeignKey('LibrarySpectraMeta', on_delete=models.CASCADE, null=True, blank=True)
     accession = models.CharField(max_length=100, blank=False, null=False)
     name = models.CharField(max_length=600, blank=False, null=False)
 
 
 
+
 class MetFragAnnotation(models.Model):
     idi = models.IntegerField()
-    s_peak_meta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE)
+    speakmeta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE, blank=True, null=True)
+    cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE, blank=True, null=True)
     explained_peaks = models.TextField(blank=True, null=True)
     formula_explained_peaks = models.TextField(blank=True, null=True)
     maximum_tree_depth = models.IntegerField(blank=True, null=True)
@@ -36,17 +42,19 @@ class MetFragAnnotation(models.Model):
 class ProbmetabAnnotation(models.Model):
     idi = models.IntegerField()
     cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE)
-    compound = models.ForeignKey('Compound', on_delete=models.CASCADE, null=True)
     prob = models.FloatField(null=False)
+    mpc = models.CharField(null=True, blank=True, max_length=100)
 
 
 class CSIFingerIDAnnotation(models.Model):
     idi = models.IntegerField()
-    s_peak_meta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE)
+    speakmeta = models.ForeignKey('SPeakMeta', on_delete=models.CASCADE, blank=True, null=True)
+    cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE, blank=True, null=True)
     inchikey2d = models.CharField(null=True, blank=True, max_length=100)
     molecular_formula = models.CharField(null=True, blank=True, max_length=100)
     rank = models.IntegerField()
     score = models.FloatField()
+    bounded_score = models.FloatField()
     name = models.TextField(blank=True, null=True)
     links = models.TextField(blank=True, null=True)
     smiles = models.TextField(blank=True, null=True)
@@ -64,12 +72,16 @@ class CAnnotation(models.Model):
 
     compound = models.ForeignKey('Compound', on_delete=models.CASCADE, null=True)
     cpeakgroup = models.ForeignKey('CPeakGroup', on_delete=models.CASCADE)
-    spectral_matching_average_score = models.FloatField(null=True, blank=True)
-    metfrag_average_score = models.FloatField(null=True, blank=True)
-    mzcloud_average_score = models.FloatField(null=True, blank=True)
-    sirius_csifingerid_average_score = models.FloatField(null=True, blank=True)
-    ms1_average_score = models.FloatField(null=True, blank=True)
-
+    sirius_csifingerid_score = models.FloatField(null=True, blank=True)
+    sirius_csifingerid_wscore = models.FloatField(null=True, blank=True)
+    metfrag_score = models.FloatField(null=True, blank=True)
+    metfrag_wscore = models.FloatField(null=True, blank=True)
+    mzcloud_score = models.FloatField(null=True, blank=True)
+    mzcloud_wscore = models.FloatField(null=True, blank=True)
+    sm_score = models.FloatField(null=True, blank=True)
+    sm_wscore = models.FloatField(null=True, blank=True)
+    probmetab_score = models.FloatField(null=True, blank=True)
+    probmetab_wscore = models.FloatField(null=True, blank=True)
 
     weighted_score = models.FloatField(null=True, blank=True)
     rank = models.IntegerField(null=True, blank=True)

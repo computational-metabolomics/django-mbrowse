@@ -41,9 +41,11 @@ class LibrarySpectraMeta(models.Model):
     mass_error = models.FloatField(blank=True, null=True)
     origin = models.TextField(blank=True, null=True)
 
-    library_spectra_source = models.ForeignKey('LibrarySpectraSource', on_delete=models.CASCADE, blank=False, null=False)
+    libraryspectrasource = models.TextField(blank=True, null=True)
     inchikey = models.ForeignKey('Compound', on_delete=models.CASCADE)
-
+    splash = models.TextField(blank=True, null=True)
+    retention_index = models.FloatField(blank=True, null=True)
+    retention_time = models.FloatField(blank=True, null=True)
 
 
 
@@ -53,6 +55,7 @@ class LibrarySpectraMeta(models.Model):
     class Meta:
         db_table = 'library_spectra_meta'
         verbose_name_plural = "library spectra meta"
+
 
 
 
