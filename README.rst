@@ -1,6 +1,6 @@
-=====
+==========
 mbrowse
-=====
+==========
 
 |Build Status (Travis)| |Py versions|
 
