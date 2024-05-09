@@ -1,5 +1,5 @@
 =================================================================================================================================================================================
-This django application has been archived - django-mbrowse functionality now within django-mogi and used for DMAdb - see https://dmadb-docs.readthedocs.io/en/latest/ 
+This django application has been archived - django-mbrowse functionality now within django-mogi and used for DMAdb - see https://dmadb.readthedocs.io/en/latest/ 
 =================================================================================================================================================================================
 
 
